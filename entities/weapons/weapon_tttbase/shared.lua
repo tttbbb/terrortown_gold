@@ -6,6 +6,9 @@ end
 
 ---- TTT SPECIAL EQUIPMENT FIELDS
 
+SWEP.PlayerSpeedMod = 1 //Multiply the player speed by this amount when they have this weapon active.
+SWEP.DropOnDeath = true
+
 -- This must be set to one of the WEAPON_ types in TTT weapons for weapon
 -- carrying limits to work properly. See /gamemode/shared.lua for all possible
 -- weapon categories.
@@ -456,9 +459,9 @@ function SWEP:Initialize()
    self:SetDeploySpeed(self.DeploySpeed)
    
    -- compat for gmod update
-   if self.SetWeaponHoldType then
-      self:SetWeaponHoldType(self.HoldType or "pistol")
-   end
+    if self.SetWeaponHoldType then
+       self:SetWeaponHoldType(self.HoldType or "pistol")
+    end
 end
 
 function SWEP:Think()

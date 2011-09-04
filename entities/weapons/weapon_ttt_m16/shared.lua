@@ -81,7 +81,6 @@ function SWEP:Reload()
    self:SetZoom(false)
 end
 
-
 function SWEP:Holster()
    self:SetIronsights(false)
    self:SetZoom(false)

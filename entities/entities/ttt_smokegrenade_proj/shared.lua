@@ -12,6 +12,11 @@ AccessorFunc( ENT, "radius", "Radius", FORCE_NUMBER )
 
 function ENT:Initialize()
    if not self:GetRadius() then self:SetRadius(20) end
+   if (SERVER) then 
+	self.MeatSound = CreateSound(self, Sound("cunt/spin_l.wav") )
+	self.MeatSound:Play()
+	self.MeatSound:ChangeVolume(0.3);
+   end
 
    return self.BaseClass.Initialize(self)
 end
@@ -19,15 +24,14 @@ end
 if CLIENT then
 
    local smokeparticles = {
-      Model("particle/particle_smokegrenade"),
-      Model("particle/particle_noisesphere")
+      Model("jim/meat")
    };
 
    function ENT:CreateSmoke(center)
       local em = ParticleEmitter(center)
 
       local r = self:GetRadius()
-      for i=1, 20 do
+      for i=1, 40 do
          local prpos = VectorRand() * r
          prpos.z = prpos.z + 32
          local p = em:Add(table.Random(smokeparticles), center + prpos)
@@ -35,20 +39,20 @@ if CLIENT then
             local gray = math.random(75, 200)
             p:SetColor(gray, gray, gray)
             p:SetStartAlpha(255)
-            p:SetEndAlpha(200)
-            p:SetVelocity(VectorRand() * math.Rand(900, 1300))
+            p:SetEndAlpha(0)
+            p:SetVelocity(VectorRand() * math.Rand(150, 200))
             p:SetLifeTime(0)
             
-            p:SetDieTime(math.Rand(50, 70))
+            p:SetDieTime(math.Rand(5, 15))
 
-            p:SetStartSize(math.random(140, 150))
+            p:SetStartSize(math.random(40, 75))
             p:SetEndSize(math.random(1, 40))
             p:SetRoll(math.random(-180, 180))
-            p:SetRollDelta(math.Rand(-0.1, 0.1))
-            p:SetAirResistance(600)
+            p:SetRollDelta(math.Rand(-2, 2))
+            p:SetAirResistance(0)
 
             p:SetCollide(true)
-            p:SetBounce(0.4)
+            p:SetBounce(1)
 
             p:SetLighting(false)
          end
@@ -69,8 +73,26 @@ function ENT:Explode(tr)
       end
 
       local pos = self:GetPos()
-
-      self:Remove()
+	  
+	for k, target in pairs(ents.FindInSphere(pos, 350)) do
+		if ValidEntity(target) then
+			if target:IsPlayer() && target:Alive() && !target:IsSpec() then
+			
+				target:SetMaterial("jim/meat");
+				
+				target:SetNWInt("jim_meatnade_time",CurTime());
+				local effect = EffectData()
+				  effect:SetStart(target:GetPos())
+				  effect:SetOrigin(target:GetPos())
+				  util.Effect("cball_explode", effect, true, true)
+					util.Effect("Explosion", effect, true, true)
+			end
+		end
+	end
+   
+	  
+		self.MeatSound:Stop()
+		self:Remove()
    else
       local spos = self:GetPos()
       local trs = util.TraceLine({start=spos + Vector(0,0,64), endpos=spos + Vector(0,0,-128), filter=self})
@@ -89,3 +111,4 @@ function ENT:Explode(tr)
       self:CreateSmoke(spos)
    end
 end
+

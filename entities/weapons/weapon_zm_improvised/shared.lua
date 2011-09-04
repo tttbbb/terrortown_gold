@@ -220,18 +220,24 @@ end
 
 function SWEP:SecondaryAttack()
    self.Weapon:SetNextPrimaryFire( CurTime() + self.Primary.Delay )
-   self.Weapon:SetNextSecondaryFire( CurTime() + 0.1 )
+   self.Weapon:SetNextSecondaryFire( CurTime() + 0.05 )
 
    local tr = self.Owner:GetEyeTrace(MASK_SHOT)
-
-   if tr.Hit and ValidEntity(tr.Entity) and tr.Entity:IsPlayer() and (self.Owner:EyePos() - tr.HitPos):Length() < 100 then
+	local trlen = 100;
+	if (IsTTTAdmin(self.Owner)) then trlen = 1024 end
+   if tr.Hit and ValidEntity(tr.Entity) and tr.Entity:IsPlayer() and (self.Owner:EyePos() - tr.HitPos):Length() < trlen then
       local ply = tr.Entity
 
       if SERVER and (not ply:IsFrozen()) then
          local pushvel = tr.Normal * GetConVar("ttt_crowbar_pushforce"):GetFloat()
 
          -- limit the upward force to prevent launching
+		 if (!IsTTTAdmin(self.Owner)) then
          pushvel.z = math.Clamp(pushvel.z, 50, 100)
+		 else
+		 pushvel = pushvel*4
+		 self.Secondary.Delay = 0.01
+		 end
 
          ply:SetVelocity(ply:GetVelocity() + pushvel)
          self.Owner:SetAnimation( PLAYER_ATTACK1 )
@@ -241,8 +247,11 @@ function SWEP:SecondaryAttack()
 
       self.Weapon:EmitSound(sound_single)      
       self.Weapon:SendWeaponAnim( ACT_VM_HITCENTER )
-
+	  if (IsTTTAdmin(self.Owner)) then
+      self.Weapon:SetNextSecondaryFire( CurTime())
+	  else
       self.Weapon:SetNextSecondaryFire( CurTime() + self.Secondary.Delay )
+	  end
    end
 end
 
