@@ -2,6 +2,7 @@
 
 AddCSLuaFile("cl_init.lua")
 AddCSLuaFile("shared.lua")
+AddCSLuaFile("cl_jimhud.lua")
 AddCSLuaFile("cl_hud.lua")
 AddCSLuaFile("cl_msgstack.lua")
 AddCSLuaFile("cl_hudpickup.lua")
@@ -37,17 +38,23 @@ AddCSLuaFile("vgui/sb_main.lua")
 AddCSLuaFile("vgui/sb_row.lua")
 AddCSLuaFile("vgui/sb_team.lua")
 AddCSLuaFile("vgui/sb_info.lua")
+AddCSLuaFile("cl_jim.lua")
+AddCSLuaFile("thirdperson.lua")
 
+//anim
 include("resources.lua")
 include("shared.lua")
 
+include("downloadmanager.lua")
 include("karma.lua")
+include("bowling.lua")
 include("entity.lua")
 include("scoring_shd.lua")
 include("radar.lua")
 include("admin.lua")
 include("traitor_state.lua")
 include("propspec.lua")
+include("propspec_admin.lua")
 include("weaponry.lua")
 include("gamemsg.lua")
 include("ent_replace.lua")
@@ -57,6 +64,9 @@ include("player_ext_shd.lua")
 include("player_ext.lua")
 include("player.lua")
 include("tags.lua")
+include("bbb_commands.lua")
+include("donate.lua")
+include("donate_weapons.lua")
 
 CreateConVar("ttt_roundtime_minutes", "10", FCVAR_NOTIFY)
 CreateConVar("ttt_preptime_seconds", "30", FCVAR_NOTIFY)
@@ -112,6 +122,12 @@ CreateConVar("ttt_voice_drain_recharge", "0.05", FCVAR_NOTIFY)
 CreateConVar("ttt_namechange_kick", "1", FCVAR_NOTIFY)
 CreateConVar("ttt_namechange_bantime", "10")
 
+CreateConVar("jim_chaosmode", "0")
+
+concommand.Add("_jim_resetmeat", function(ply) Msg("unmeating\n") ply:SetMaterial("") end)
+concommand.Add("_jim_domeat", function(ply) Msg("meating\n") ply:SetMaterial("jim/meat_lit") end)
+
+
 local ttt_detective = CreateConVar("ttt_sherlock_mode", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY)
 local ttt_minply = CreateConVar("ttt_minimum_players", "2", FCVAR_ARCHIVE + FCVAR_NOTIFY)
 
@@ -161,6 +177,8 @@ function GM:Initialize()
    SetGlobalFloat("ttt_round_end", -1)
    SetGlobalFloat("ttt_haste_end", -1)
    SetGlobalInt("ttt_rounds_left", GetConVar("ttt_round_limit"):GetInt())
+   SetGlobalInt("jim_currentpins", 0)
+   SetGlobalInt("jim_diedpins", 0)
 
    GAMEMODE:SyncGlobals()
 
@@ -187,13 +205,13 @@ function GM:Initialize()
       ErrorNoHalt("WARNING: CS:S does not appear to be mounted by GMod. Things may break in strange ways. Server admin? Check the TTT readme for help.\n")
    end
 
-   GAMEMODE:CheckFileConsistency()
+   //GAMEMODE:CheckFileConsistency()
 end
 
 function GM:InitPostEntity()
    self.Customized = WEPS.HasCustomEquipment()
 
-   self:UpdateServerTags()
+   //self:UpdateServerTags()
 end
 
 function GM:GetGameDescription() return self.Name end
@@ -418,7 +436,7 @@ function GM:TTTDelayRoundStartForVote()
 end
 
 function PrepareRound()
-   GAMEMODE:UpdateServerTags()
+   //GAMEMODE:UpdateServerTags()
 
    -- Check playercount
    if CheckForAbort() then return end
@@ -654,6 +672,8 @@ function BeginRound()
    hook.Call("TTTBeginRound")
 
    ents.TTT.TriggerRoundStateOutputs(ROUND_BEGIN)
+   
+   SetGlobalInt("jim_currentpins", 0)
 end
 
 local function ShouldMapSwitch()
@@ -947,7 +967,7 @@ end
 concommand.Add("ttt_version", ShowVersion)
 
 function AnnounceVersion()
-   local text = Format("You are playing %s, version %s.\n", GAMEMODE.Name, GAMEMODE.Version)
+   local text = Format("You are playing %s\n", GAMEMODE.Name)
 
    -- announce to players
    for k, ply in pairs(player.GetAll()) do
@@ -958,6 +978,6 @@ function AnnounceVersion()
 end
 
 function GM:AcceptStream(ply, handler, id)
-   return false -- not used, so reject all to avoid "unhandled stream" errors
+   return true -- not used, so reject all to avoid "unhandled stream" errors
 end
 

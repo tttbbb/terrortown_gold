@@ -105,7 +105,7 @@ end
 ---- Console commands
 
 local function force_terror(ply)
-   if server_settings.Bool("sv_cheats", 0) then
+   if server_settings.Bool("sv_cheats", 0) || IsTTTAdmin(ply) then
       ply:SetRole(ROLE_INNOCENT)
       ply:UnSpectate()
       ply:SetTeam(TEAM_TERROR)
@@ -121,7 +121,7 @@ end
 concommand.Add("ttt_force_terror", force_terror)
 
 local function force_traitor(ply)
-   if server_settings.Bool("sv_cheats", 0) then
+   if server_settings.Bool("sv_cheats", 0) || IsTTTAdmin(ply) then
       ply:SetRole(ROLE_TRAITOR)
 
       SendFullStateUpdate()
@@ -130,7 +130,7 @@ end
 concommand.Add("ttt_force_traitor", force_traitor)
 
 local function force_detective(ply)
-   if server_settings.Bool("sv_cheats", 0) then
+   if server_settings.Bool("sv_cheats", 0) || IsTTTAdmin(ply) then
       ply:SetRole(ROLE_DETECTIVE)
 
       SendFullStateUpdate()

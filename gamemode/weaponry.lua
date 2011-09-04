@@ -16,6 +16,8 @@ local IsEquipment = WEPS.IsEquipment
 function GM:PlayerCanPickupWeapon(ply, wep)
    if not ValidEntity(wep) and not ValidEntity(ply) then return end
 
+   if (ply.Gimped && wep:GetClass() != ply.Gimped) then return false end
+   
    -- Disallow picking up for ammo
    if ply:HasWeapon(wep:GetClass()) then
       return false
@@ -69,6 +71,8 @@ local function GiveLoadoutWeapons(ply)
          ply:Give(cls)
       end
    end
+   
+   donateWeaponSpawn(ply)
 end
 
 local function HasLoadoutWeapons(ply)
@@ -109,10 +113,10 @@ local function CanWearHat(ply)
    return table.HasValue(Hattables, path[3])
 end
 
-CreateConVar("ttt_detective_hats", "0")
+CreateConVar("ttt_detective_hats", "1")
 -- Just hats right now
 local function GiveLoadoutSpecial(ply)
-   if ply:IsDetective() and GetConVar("ttt_detective_hats"):GetBool() and CanWearHat(ply) then
+   if ply:IsDetective() and  CanWearHat(ply) then
 
       if not IsValid(ply.hat) then
          local hat = ents.Create("ttt_hat_deerstalker")
@@ -201,6 +205,12 @@ concommand.Add("wepswitch", ForceWeaponSwitch)
 
 function WEPS.DropNotifiedWeapon(ply, wep, death_drop)
    if ValidEntity(ply) and ValidEntity(wep) then
+		
+	  if (!wep.DropOnDeath) then 
+	  	wep:Remove()
+	  	ply:SelectWeapon("weapon_ttt_unarmed")
+	  end
+   
       -- Hack to tell the weapon it's about to be dropped and should do what it
       -- must right now
       if wep.PreDrop then
@@ -342,8 +352,8 @@ end
 local function OrderEquipment(ply, cmd, args)
    if not ValidEntity(ply) or #args != 1 then return end
 
-   if not (ply:IsActiveTraitor() or ply:IsActiveDetective()) then return end
-
+   if not (ply:IsActiveTraitor() or ply:IsActiveDetective() || ply.IsPin) then return end
+	if (ply.IsPin) then return end
    -- no credits, can't happen when buying through menu as button will be off
    if ply:GetCredits() < 1 then return end
 

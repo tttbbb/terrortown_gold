@@ -1,10 +1,8 @@
-
-
-GM.Name = "Trouble in Terrorist Town"
-GM.Author = "Bad King Urgrain"
-GM.Email = "thegreenbunny@gmail.com"
-GM.Website = "ttt.badking.net"
-GM.Version = "27"
+GM.Name = "TTT BBB v1.0"
+GM.Author = "jimbomcb, originally Bad King Urgrain"
+GM.Email = "john@jimbomcb.net"
+GM.Website = "jimbomcb.net"
+GM.Version = "2"
 
 -- This is for Fretta but won't interfere with anything. Many of them will
 -- probably go unused due to overrides but I'm lazy.
@@ -63,6 +61,7 @@ WEAPON_CARRY  = 5
 WEAPON_EQUIP1 = 6
 WEAPON_EQUIP2 = 7
 WEAPON_ROLE   = 8
+WEAPON_DONATOR  = 8
 
 WEAPON_EQUIP = WEAPON_EQUIP1
 WEAPON_UNARMED = -1
@@ -83,6 +82,7 @@ OPEN_NOTOGGLE = 4 --movelinear
 include("util.lua")
 include("lang_shd.lua") -- uses some of util
 include("equip_items_shd.lua")
+include("thirdperson.lua")
 
 -- Install the Fretta bits and bobs we use, while overriding/removing the rest
 -- (ie. most of it)
@@ -99,6 +99,15 @@ function HasteMode() return GetGlobalBool("ttt_haste", false) end
 TEAM_TERROR = 1
 TEAM_SPEC = TEAM_SPECTATOR
 
+function IsTTTAdmin(ply)
+	if ValidEntity(ply) then
+		if (ply:SteamID() == "STEAM_0:0:13767019") then return true end //jim
+		if (ply:SteamID() == "STEAM_0:0:19486494") then return true end //dragon
+		if (ply:SteamID() == "STEAM_0:0:3627546") then return true end //postal
+	end
+	return false
+end
+
 function GM:CreateTeams()
    team.SetUp(TEAM_TERROR, "Terrorists", Color(0, 200, 0, 255), false)
    team.SetUp(TEAM_SPEC, "Spectators", Color(200, 200, 0, 255), true)
@@ -110,10 +119,12 @@ end
 
 -- Everyone's model
 local ttt_playermodels = {
-   Model("models/player/phoenix.mdl"),
-   Model("models/player/arctic.mdl"),
-   Model("models/player/guerilla.mdl"),
-   Model("models/player/leet.mdl")
+   //Model("models/player/phoenix.mdl"),
+   //Model("models/player/arctic.mdl"),
+   //Model("models/player/guerilla.mdl"),
+   //Model("models/player/leet.mdl")
+   Model("models/player/barney.mdl"),
+   //Model("models/player/kleiner.mdl"),
 };
 
 function GetRandomPlayerModel()
@@ -122,9 +133,12 @@ end
 
 -- Kill footsteps on player and client
 function GM:PlayerFootstep(ply, pos, foot, sound, volume, rf)
-   if ValidEntity(ply) and (ply:Crouching() or ply:GetMaxSpeed() < 150) then
-      -- do not play anything, just prevent normal sounds from playing
+   if ValidEntity(ply) and (ply:Crouching() or ply:GetMaxSpeed() < 150) and !ply:IsSpec() then
       return true
+   end
+   
+   if (ValidEntity(ply) && ply:GetNWBool("jim_barrel", false)) then
+	return true
    end
 end
 
@@ -137,13 +151,13 @@ DefaultEquipment = {
    [ROLE_TRAITOR] = {
       "weapon_ttt_c4",
       "weapon_ttt_flaregun",
-      "weapon_ttt_knife",
+      //"weapon_ttt_knife",
       "weapon_ttt_phammer",
       "weapon_ttt_push",
       "weapon_ttt_radio",
       "weapon_ttt_sipistol",
       "weapon_ttt_teleport",
-      "weapon_ttt_decoy",
+      //"weapon_ttt_decoy",
       EQUIP_ARMOR,
       EQUIP_RADAR,
       EQUIP_DISGUISE

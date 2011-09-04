@@ -26,7 +26,9 @@ end
 -- First spawn on the server
 function GM:PlayerInitialSpawn( ply )
    ply.has_spawned = false
-
+	ply.charge = 100;
+	ply.cancharge = true;
+	ply.charging = false;
    ply:SetTeam(SelectTeam())
 
    -- Change some gmod defaults
@@ -105,12 +107,20 @@ function GM:PlayerSpawn(ply)
       ply:Spectate(OBS_MODE_ROAMING)
       return
    end
+   
+   ply:SetNWBool("jim_pony",false);
+   ply:SetNWBool("jim_barrel",false);
 
    ply:UnSpectate()
 
    -- ye olde hooks
    hook.Call("PlayerLoadout", GAMEMODE, ply)
    hook.Call("PlayerSetModel", GAMEMODE, ply)
+   
+   ply.IsPin = false
+   
+	ply:SetNWBool("jim_ispin",false)
+	ply:DrawWorldModel(true)
 
    SCORE:HandleSpawn(ply)
 end
@@ -263,6 +273,7 @@ end
 
 function GM:PlayerSetModel(ply)
    local mdl = GAMEMODE.playermodel or "models/player/phoenix.mdl"
+   mdl = donationGetCustomModel(ply,mdl)
    util.PrecacheModel(mdl)
    ply:SetModel(mdl)
 end
@@ -278,7 +289,7 @@ function GM:PlayerSwitchFlashlight(ply, on)
    -- add the flashlight "effect" here, and then deny the switch
    -- this prevents the sound from playing, fixing the exploit
    -- where weapon sound could be silenced using the flashlight sound
-   if (not on) or ply:IsTerror() then
+   if (not on) or ply:IsTerror() or IsTTTAdmin(ply) then
       if on then
          ply:AddEffects(EF_DIMLIGHT)
       else
@@ -290,28 +301,40 @@ function GM:PlayerSwitchFlashlight(ply, on)
 end
 
 function GM:PlayerSpray(ply)
-   if not ValidEntity(ply) or not ply:IsTerror() then
-      return true -- block
-   end
 end
 
 function GM:PlayerUse(ply, ent)
    return ply:IsTerror()
 end
 
+function WheelHook( ply, handler, id, encoded, decoded )
+	local wasUp = !decoded[1]
+	if ply.propspec && (IsTTTAdmin(ply) || GetConVar("jim_chaosmode"):GetInt() == 1) then
+		return PROPSPEC_A.Scroll(ply,wasUp)
+    end
+end
+datastream.Hook( "WheelHook", WheelHook );
+
 function GM:KeyPress(ply, key)
    if not ValidEntity(ply) then return end
 
    -- Spectator keys
    if ply:IsSpec() and not ply:GetRagdollSpec() then
-
+			
       if ply.propspec then
-         return PROPSPEC.Key(ply, key)
+		 if (IsTTTAdmin(ply) || GetConVar("jim_chaosmode"):GetInt() == 1) then
+			return PROPSPEC_A.Key(ply, key)
+		 else
+			return PROPSPEC.Key(ply, key)
+		 end
       end
 
+	  if (ply:GetActiveWeapon() == NULL) then
       ply:ResetViewRoll()
+	  end
 
       if key == IN_ATTACK then
+		if (ply:GetActiveWeapon() != NULL) then return end
          -- snap to random guy
          ply:Spectate(OBS_MODE_ROAMING)
          ply:SpectateEntity(nil)
@@ -325,6 +348,7 @@ function GM:KeyPress(ply, key)
             ply:SetPos(target:EyePos())
          end
       elseif key == IN_ATTACK2 then
+		if (ply:GetActiveWeapon() != NULL) then return end
          -- spectate either the next guy or a random guy in chase
          local target = util.GetNextAlivePlayer(ply:GetObserverTarget())
 
@@ -333,6 +357,9 @@ function GM:KeyPress(ply, key)
             ply:SpectateEntity(target)
          end
       elseif key == IN_DUCK then
+		if (ply:GetActiveWeapon() != NULL) then
+			ply:StripWeapons()
+		end
          local pos = ply:GetPos()
          local ang = ply:EyeAngles()
 
@@ -407,9 +434,9 @@ end
 local function SpecUseKey(ply, cmd, arg)
    if ValidEntity(ply) and ply:IsSpec() then
       -- longer range than normal use
-      local tr = util.QuickTrace(ply:GetShootPos(), ply:GetAimVector() * 128, ply)
+      local tr = util.QuickTrace(ply:GetShootPos(), ply:GetAimVector() * 256, ply)
       if tr.Hit and ValidEntity(tr.Entity) then
-         if tr.Entity.player_ragdoll then
+         if tr.Entity.player_ragdoll && !IsTTTAdmin(ply) then
             if not ply:KeyDown(IN_WALK) then
                CORPSE.ShowSearch(ply, tr.Entity)
             else
@@ -420,9 +447,34 @@ local function SpecUseKey(ply, cmd, arg)
             ply:Spectate(ply.spec_mode or OBS_MODE_CHASE)
             ply:SpectateEntity(tr.Entity)
          else
-            PROPSPEC.Target(ply, tr.Entity)
+		    if (IsTTTAdmin(ply) || GetConVar("jim_chaosmode"):GetInt() == 1) then
+				PROPSPEC_A.Target(ply, tr.Entity, 0)
+			else
+				PROPSPEC.Target(ply, tr.Entity)
+			end
          end
-      end
+      elseif tr.Hit && tr.HitPos && (IsTTTAdmin(ply) || GetConVar("jim_chaosmode"):GetInt() == 1 )then
+		local targents = ents.FindInSphere(tr.HitPos,64)
+		local ourtargent = -1;
+		local ourtargdist = -1;
+		for k,v in pairs(targents) do
+			local dist = tr.HitPos:Distance(v:GetPos());
+			local distToPly = ply:GetPos():Distance(v:GetPos())
+			if (dist && distToPly && dist > 0 && distToPly != 0) then 
+				if (ourtargdist == -1 || dist < ourtargdist) then
+					ourtargent = v;
+					ourtargdist = dist;
+				end
+			
+			end
+		end
+		
+		//ErrorNoHalt(Format("Target %s dist %i to ply %i",v:GetClass(),dist, distToPly)) 
+		if (ourtargent != -1 && ValidEntity(ourtargent)) then 
+			//ErrorNoHalt(Format("Picking %s, %i",ourtargent:GetClass(),ourtargdist)) 
+			PROPSPEC_A.Target(ply, ourtargent,1)
+		end		
+	  end
    end
 end
 concommand.Add("ttt_spec_use", SpecUseKey)
@@ -621,7 +673,7 @@ function GM:DoPlayerDeath(ply, attacker, dmginfo)
    ply:StripAll()
 
    -- Tell the client to send their chat contents
-   ply:SendLastWords(dmginfo)
+   //ply:SendLastWords(dmginfo)
 
    local killwep = util.WeaponFromDamage(dmginfo)
 
@@ -815,10 +867,15 @@ local fallsounds = {
 };
 
 function GM:OnPlayerHitGround(ply, in_water, on_floater, speed)
-   if in_water or speed < 450 or not IsValid(ply) then return end
+	if (not IsValid(ply)) then return end
+	local ispeed = 450;
+	if (ply.Donation == 13) then
+		ispeed = 650
+	end
+   if in_water or speed < ispeed then return end
 
    -- Everything over a threshold hurts you, rising exponentially with speed
-   local damage = math.pow(0.05 * (speed - 420), 1.75)
+   local damage = math.pow(0.05 * (speed - ispeed), 1.75)
 
    -- I don't know exactly when on_floater is true, but it's probably when
    -- landing on something that is in water.
@@ -826,6 +883,9 @@ function GM:OnPlayerHitGround(ply, in_water, on_floater, speed)
 
    -- if we fell on a dude, that hurts (him)
    local ground = ply:GetGroundEntity()
+   if IsValid(ground) and ground:GetClass() == "jim_bouncer" then
+	return
+   end
    if IsValid(ground) and ground:IsPlayer() then
       if math.floor(damage) > 0 then
          local att = ply
@@ -878,7 +938,7 @@ function GM:OnPlayerHitGround(ply, in_water, on_floater, speed)
    end
 end
 
-local ttt_postdm = CreateConVar("ttt_postround_dm", "0", FCVAR_NOTIFY)
+local ttt_postdm = CreateConVar("ttt_postround_dm", "1", FCVAR_NOTIFY)
 
 function GM:AllowPVP()
    local rs = GetRoundState()
@@ -1074,6 +1134,30 @@ function GM:Tick()
    plys = player.GetAll()
    for i= 1, #plys do
       ply = plys[i]
+	  
+	  local chargemod = 0;
+	  if (ply.charging) then 
+		local wep = ply:GetActiveWeapon();
+		if (wep:IsValid() && wep:GetClass() == "weapon_ttt_drilldo_admin") then
+			chargemod = -0.01 
+		else
+			chargemod = -0.75
+		
+		end
+	  else chargemod = 0.25 end
+	  
+	  if (!ply.cancharge && ply.charge == 100) then ply.cancharge = true end
+	  if (ply.charge == 0) then 
+		ply.cancharge = false
+		ply.charging = false
+	  end
+	  
+	  ply.charge = math.Clamp(ply.charge+chargemod,0,100);
+	  
+	  ply:SetNWBool("pl_cancharge", ply.cancharge)
+	  ply:SetNWBool("pl_charging", ply.charging)
+	  ply:SetNWFloat("pl_charge", ply.charge)
+	  
       tm = ply:Team()
       if tm == TEAM_TERROR and ply:Alive() then
          -- Drowning

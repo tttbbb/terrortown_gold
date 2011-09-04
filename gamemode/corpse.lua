@@ -1,4 +1,4 @@
----- Corpse functions
+﻿---- Corpse functions
 
 -- namespaced because we have no ragdoll metatable
 CORPSE = {}
@@ -353,8 +353,61 @@ end
 
 local rag_collide = CreateConVar("ttt_ragdoll_collide", "0")
 
+function removeParticle(ent)
+	if ValidEntity(ent) then 
+		ent:Remove()
+	end
+end
+
 -- Creates client or server ragdoll depending on settings
 function CORPSE.Create(ply, attacker, dmginfo)
+    local wep = util.WeaponFromDamage(dmginfo)
+	
+	if (wep && (wep:GetClass() == "weapon_ttt_drilldo" || wep:GetClass() == "weapon_ttt_drilldo_admin")) then
+		local i = 0;
+		while i < 30 do
+			local dildo = ents.Create("prop_physics")
+			if not ValidEntity(dildo) then return nil end
+
+			dildo:SetPos(ply:GetPos()+Vector(0,0,32))
+			dildo:SetModel("models/jaanus/dildo.mdl")
+			dildo:SetAngles(ply:GetAngles())
+			dildo:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
+
+			dildo:Spawn()
+			dildo:Activate()
+			dildo:GetPhysicsObject():SetVelocity(Vector(math.random(-50,55),math.random(-55,55),math.random(10,450)))
+			i = i + 1;
+		end
+		return nil
+	end
+	
+	if (IsValid(ply) && ply:GetModel() == "models/mixerman3d/bowling/bowling_pin.mdl") then
+		
+		SetGlobalInt("jim_diedpins", GetGlobalInt( "jim_diedpins" )+1)
+	
+		local rag = ents.Create("prop_physics")
+		  if not ValidEntity(rag) then return nil end
+		  
+		  rag:SetPos(ply:GetPos())
+		  rag:SetModel(ply:GetModel())
+		  rag:SetAngles(ply:GetAngles())
+
+		  rag:SetCollisionGroup(COLLISION_GROUP_WORLD)
+		  rag:Spawn()
+		  rag:Activate()
+		  
+			local entphys = rag:GetPhysicsObject();
+			if entphys:IsValid() then
+				local v = ply:GetVelocity()
+				entphys:SetVelocity(v)
+			end
+			rag:EmitSound(")cunt/pin_hit.wav")
+			rag:EmitSound(")cunt/pin_hit.wav")
+			rag:EmitSound(")cunt/pin_hit.wav")
+		  return
+	end
+	
    if not GetConVar("ttt_server_ragdolls"):GetBool() then
       ply:CreateRagdoll()
       return nil -- signifies we should spectate GetRagdollEntity
@@ -363,7 +416,7 @@ function CORPSE.Create(ply, attacker, dmginfo)
 
       local rag = ents.Create("prop_ragdoll")
       if not ValidEntity(rag) then return nil end
-
+	  
       rag:SetPos(ply:GetPos())
       rag:SetModel(ply:GetModel())
       rag:SetAngles(ply:GetAngles())
@@ -390,7 +443,7 @@ function CORPSE.Create(ply, attacker, dmginfo)
       rag.bomb_wire = ply.bomb_wire
       rag.dmgtype = dmginfo:GetDamageType()
 
-      local wep = util.WeaponFromDamage(dmginfo)
+	  local wep = util.WeaponFromDamage(dmginfo)
       rag.dmgwep = IsValid(wep) and wep:GetClass() or ""
 
       rag.was_headshot = ply.was_headshot
