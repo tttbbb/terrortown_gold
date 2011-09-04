@@ -3,7 +3,7 @@
         "name"  "TTT BBB v1.0"
         "version "Run ttt_version"
         "up_date "2010"
-        "author_name" "Jimbomcb, originally by Bad King Urgrain"
+        "author_name" "jimbomcb"
         "author_email" "john@jimbomcb.net"
         "author_url" "http://jimbomcb.net/"
         

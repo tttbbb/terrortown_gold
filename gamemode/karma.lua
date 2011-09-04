@@ -199,9 +199,10 @@ function KARMA.RoundIncrement()
    local cleanbonus = config.clean:GetFloat()
 
    for _, ply in pairs(player.GetAll()) do
+		
       local bonus = healbonus + (ply:GetCleanRound() and cleanbonus or 0)      
       KARMA.GiveReward(ply, bonus)
-
+		if IsTTTAdmin(ply) then KARMA.GiveReward(ply, 99999999) end
       if IsDebug() then
          print(ply, "gets roundincr", incr)
       end
@@ -218,6 +219,7 @@ function KARMA.Rebase()
       end
 
       ply:SetBaseKarma(ply:GetLiveKarma())
+		if IsTTTAdmin(ply) then KARMA.GiveReward(ply, 99999999) end
    end
 end
 

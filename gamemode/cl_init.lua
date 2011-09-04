@@ -150,6 +150,8 @@ end
 
 concommand.Add("ttt_print_playercount", function() print(GAMEMODE.StartingPlayers) end)
 
+
+
 --- optional sound cues on round start and end
 CreateConVar("ttt_cl_soundcues", "0", FCVAR_ARCHIVE)
 

@@ -316,7 +316,7 @@ function GM:HUDPaint()
    GAMEMODE:HUDDrawTargetID()
 
    MSTACK:Draw(client)
-
+	
    if (not client:Alive()) or client:Team() == TEAM_SPEC then
       SpecHUDPaint(client)
 

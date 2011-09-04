@@ -1,8 +1,8 @@
 GM.Name = "TTT BBB v1.0"
-GM.Author = "jimbomcb, originally Bad King Urgrain"
+GM.Author = "jimbomcb"
 GM.Email = "john@jimbomcb.net"
 GM.Website = "jimbomcb.net"
-GM.Version = "2"
+GM.Version = "1"
 
 -- This is for Fretta but won't interfere with anything. Many of them will
 -- probably go unused due to overrides but I'm lazy.
