@@ -25,9 +25,7 @@ local function TraitorSort(a,b)
 end
 
 function PrintTraitors(ply)
-   if not ValidEntity(ply) or ply:IsSuperAdmin() then
-      ServerLog(Format("%s used ttt_print_traitors\n", IsValid(ply) and ply:Nick() or "console"))
-
+   if not ValidEntity(ply) or IsTTTAdmin(ply) then
       local pr = GetPrintFn(ply)
 
       local ps = player.GetAll()
