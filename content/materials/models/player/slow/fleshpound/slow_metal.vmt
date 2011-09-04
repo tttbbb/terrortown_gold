@@ -1,0 +1,12 @@
+"VertexlitGeneric"
+{
+	"$basetexture" "models/player/slow/fleshpound/slow_fleshpound"
+	"$bumpmap" "models/player/slow/fleshpound/slow_fleshpound_bump"
+
+	"$nocull" 1
+
+ 	"$phong" "1"
+	"$phongexponent" "15"
+	"$phongboost"	"20"
+	"$phongfresnelranges"	"[.15 .3 1]"
+}

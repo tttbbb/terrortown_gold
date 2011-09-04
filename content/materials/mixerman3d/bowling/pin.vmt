@@ -1,0 +1,10 @@
+"vertexlitgeneric" {
+    "$basetexture" "mixerman3d\bowling\pin"
+    "$bumpmap" "mixerman3d\bowling\pin_normal"
+    "$normalmapalphaenvmapmask" 1
+    "$envmapcontrast" 0
+    "$envmapsaturation" 0
+    "$envmap" "env_cubemap"
+    "$envmaptint" "[ 0.3098 0.3098 0.3098 ]"
+    "$surfaceprop" "concrete"
+}

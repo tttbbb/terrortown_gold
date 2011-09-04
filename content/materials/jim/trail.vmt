@@ -1,0 +1,18 @@
+"UnlitGeneric"
+{
+	"$baseTexture" "jim/trail"
+	
+	"$vertexcolor" 1
+	"$vertexalpha" 1
+	
+	"Proxies"
+   {
+      "AnimatedTexture"
+      {
+         "animatedtexturevar" "$basetexture"
+         "animatedtextureframenumvar" "$frame"
+         "animatedtextureframerate" "7"
+      }
+   }
+   
+}

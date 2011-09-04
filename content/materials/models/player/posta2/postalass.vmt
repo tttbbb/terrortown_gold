@@ -1,0 +1,5 @@
+"VertexLitGeneric"
+{
+	"$baseTexture" "models/player/posta2/postalass"
+	"$nocull" 1
+}

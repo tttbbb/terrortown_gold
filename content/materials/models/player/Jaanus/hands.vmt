@@ -1,0 +1,13 @@
+"VertexLitGeneric"
+{
+	"$baseTexture" "models\player\Jaanus\hands"
+	"$halflambert" 1
+	"$bumpmap"	"models\player\Jaanus\hands_normal"
+
+	"$phong" "1"
+	"$phongboost" "1.2"
+	"$phongexponent" "1"
+	"$phongexponenttexture" "models\player\Jaanus\hands_phong"
+	"$phongalbedotint" "1"										
+	"$phongfresnelranges"	"[.2 .2 .2]"
+}

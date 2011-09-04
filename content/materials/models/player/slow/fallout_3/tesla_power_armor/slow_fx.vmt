@@ -1,0 +1,31 @@
+"Unlitgeneric"
+{
+	"$basetexture" 	"models/player/slow/fallout_3/tesla_power_armor/slow_fx"
+
+	"$additive" 1
+	"$model" 1
+	"$translucent" 1
+	"$nocull" 1
+
+	"$s-low" 0
+	"$s-low2" "0.17"
+	"$s-low3" 0	
+
+
+	"Proxies"
+	{
+		"Sine"
+		{
+			"sineperiod"	"5"
+			"sinemin"	"0"
+			"sinemax"	"1"
+			"resultVar"	"$alpha"
+		}
+		"TextureScroll"
+		{
+			"textureScrollVar"	"$basetexturetransform"
+			"textureScrollRate"	"0.15"
+			"textureScrollAngle"	"137.79"
+		}
+	}
+}

@@ -1,0 +1,14 @@
+"Vertexlitgeneric"
+{
+	"$basetexture" "models/player/slow/fallout_3/tesla_power_armor/slow_helmet"
+	"$bumpmap" "models/player/slow/fallout_3/tesla_power_armor/slow_helmet_bump"
+
+	"$selfillum" 1
+	"$selfillumtint" "[1 .82 .47]" 
+
+	"$envmap" "env_cubemap"
+	"$normalmapalphaenvmapmask" 1
+	"$envmaptint" "[1 .82 .47]" 
+	"$envmapcontrast" .05
+	"$envmapsaturation" 1
+}

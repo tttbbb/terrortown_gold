@@ -1,0 +1,30 @@
+"Vertexlitgeneric"
+{
+	"$basetexture" "models/player/slow/fallout_3/tesla_power_armor/slow_tesla_glass"
+	"$bumpmap" "models/player/slow/fallout_3/tesla_power_armor/slow_tesla_glass_bump"
+
+	"$nocull" 1
+ 
+	"$additive" 1
+
+	"$envmap" "env_cubemap"
+	"$envmaptint" "[.59 .27 1]" 
+	"$envmapcontrast" .5
+	"$envmapsaturation" 1
+
+	"Proxies"
+	{
+		"TextureScroll"
+		{
+			"texturescrollvar"	"$baseTextureTransform"
+			"texturescrollrate"	.5
+			"texturescrollangle"	137
+		}
+		"TextureScroll"
+		{
+			"texturescrollvar"	"$bumptransform"
+			"texturescrollrate"	.6
+			"texturescrollangle"	77
+		}
+	}
+}

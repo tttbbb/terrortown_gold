@@ -1,0 +1,6 @@
+"VertexLitGeneric"
+{
+	"$baseTexture" "models\spacemarine\banner"
+
+	"$selfillum" 1
+}

@@ -1,0 +1,9 @@
+"vertexlitgeneric"
+{
+	"$baseTexture" "models/harry/texture07"
+	"$normalmapalphaenvmapmask" 0
+	"$translucent" 1
+	"$halflambert" 0
+	"$nodecal" 1
+	"$nocull" 1 
+}

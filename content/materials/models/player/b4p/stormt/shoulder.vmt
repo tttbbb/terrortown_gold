@@ -1,0 +1,5 @@
+"VertexLitGeneric"
+{
+    "$baseTexture" "models/player/b4p/stormt/shoulder"
+    "$model" 1
+}

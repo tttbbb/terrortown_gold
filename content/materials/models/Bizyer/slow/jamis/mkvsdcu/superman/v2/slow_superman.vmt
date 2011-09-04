@@ -1,0 +1,5 @@
+"VertexlitGeneric"
+{
+	"$basetexture" "models/Bizyer/slow/jamis/mkvsdcu/superman/v2/slow_superman"
+	"$bumpmap" "models/Bizyer/slow/jamis/mkvsdcu/superman/v2/slow_superman_bump"
+}

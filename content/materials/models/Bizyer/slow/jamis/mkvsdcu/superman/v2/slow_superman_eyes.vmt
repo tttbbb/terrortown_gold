@@ -1,0 +1,11 @@
+"VertexlitGeneric"
+{
+	"$basetexture" "models/Bizyer/slow/jamis/mkvsdcu/superman/v2/slow_superman"
+
+	"$envmap" "env_cubemap"
+	"$envmapmask" "models/Bizyer/slow/jamis/mkvsdcu/superman/v2/slow_superman"
+	"$envmaptint" "[.7 .8 .85]"
+	"$envmapcontrast" .9
+	"$envmapsaturation" .75
+}
+

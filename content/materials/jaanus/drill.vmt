@@ -1,0 +1,17 @@
+"VertexLitGeneric"
+{
+	"$basetexture" "jaanus/drill"
+	"$bumpmap" "jaanus/drill_n"
+
+	"$phong" "1"
+	"$phongexponent" "6"
+	"$phongboost" "0.5"	
+	"$phongfresnelranges"	"[1 0.5 2.5]"
+	"$halflambert" "1"
+
+	// Rim lighting parameters
+	"$rimlight" "1"												// To enable rim lighting (requires phong)
+	"$rimlightexponent" "2"										// Exponent for phong component of rim lighting	
+	"$rimlightboost" "2"										// Boost for ambient cube component of rim lighting
+}
+

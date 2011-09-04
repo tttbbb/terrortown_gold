@@ -1,0 +1,10 @@
+"VertexlitGeneric"
+{
+	"$basetexture" "models/player/slow/fallout_3/tesla_power_armor/slow_addon"
+
+	"$envmap" "env_cubemap"
+	"$envmapmask" "models/player/slow/fallout_3/tesla_power_armor/slow_addon"
+	"$envmaptint" "[1 .69 .52]" 
+	"$envmapcontrast" .5
+	"$envmapsaturation" 1
+}

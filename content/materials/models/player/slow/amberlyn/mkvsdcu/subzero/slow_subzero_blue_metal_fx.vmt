@@ -1,0 +1,13 @@
+"VertexlitGeneric"
+{
+	"$basetexture" "models/player/slow/amberlyn/mkvsdcu/subzero/slow_subzero"
+	"$bumpmap" "models/player/slow/amberlyn/mkvsdcu/subzero/slow_subzero_bump"
+
+	"$translucent" 1
+
+	"$envmap" "env_cubemap"
+	"$normalmapalphaenvmapmask" 1
+	"$envmaptint" "[.44 .86 1]"
+	"$envmapcontrast" .55
+	"$envmapsaturation" 1
+}

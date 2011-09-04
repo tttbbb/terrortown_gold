@@ -1,0 +1,10 @@
+"VertexlitGeneric"
+{
+	"$basetexture" "models/player/slow/fallout_3/tesla_power_armor/slow_addon"
+	"$bumpmap" "models/player/slow/fallout_3/tesla_power_armor/slow_addon_bump"
+
+ 	"$phong" "1"
+	"$phongexponent" "11"
+	"$phongboost"	"13"
+	"$phongfresnelranges"	"[.15 .5 1]"
+}

@@ -1,0 +1,5 @@
+"VertexLitGeneric"
+{
+	"$baseTexture" "models\barney/barney_hands_wht"
+	"$halflambert" 1
+}

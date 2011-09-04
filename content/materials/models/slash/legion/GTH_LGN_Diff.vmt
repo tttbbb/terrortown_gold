@@ -1,0 +1,15 @@
+"VertexlitGeneric"
+{
+	"$basetexture" "models/slash/legion/GTH_LGN_Diff"
+	"$bumpmap" "models/slash/legion/GTH_LGN_Norm"
+	"$halflambert" "1"
+
+	"$selfillum" 1
+	"$selfillummask" "models/slash/legion/GTH_LGN_Emis"
+
+	"$phong" "1" 
+	"$phongboost" "0.04" 
+	"$phongfresnelranges" "[ 1 5 15]"
+	"$phongexponent" "80"
+	"$model" 1
+}

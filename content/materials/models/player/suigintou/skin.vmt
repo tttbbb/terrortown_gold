@@ -1,0 +1,13 @@
+"VertexLitGeneric"
+{
+	"$baseTexture"	"models\player\Suigintou\skin"
+
+	"$phong"			1
+	"$phongexponent"		3
+	"$phongboost"		0.2
+	"$phongfresnelranges"	"[0 0.2 0.6]"
+	"$lightwarptexture"		"models\player\Suigintou/lightwarp"
+
+	"$halflambert"	1
+	"$model"		1
+}

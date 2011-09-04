@@ -1,0 +1,10 @@
+"VertexlitGeneric"
+{
+	"$basetexture" "models/Batman/slow/jamis/mkvsdcu/batman/slow_batman"
+	"$bumpmap" "models/Batman/slow/jamis/mkvsdcu/batman/slow_batman_bump"
+
+ 	"$phong" "1"
+	"$phongexponent" "7"
+	"$phongboost"	"1.5"
+	"$phongfresnelranges"	"[.15 .45 1]"
+}

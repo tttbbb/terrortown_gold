@@ -1,0 +1,10 @@
+"VertexlitGeneric"
+{
+	"$basetexture" "models/Bizyer/slow/jamis/mkvsdcu/superman/v2/slow_superman"
+	"$bumpmap" "models/Bizyer/slow/jamis/mkvsdcu/superman/v2/slow_superman_bump"
+
+ 	"$phong" "1"
+	"$phongexponent" "7"
+	"$phongboost"	"1"
+	"$phongfresnelranges"	"[.15 .45 1]"
+}

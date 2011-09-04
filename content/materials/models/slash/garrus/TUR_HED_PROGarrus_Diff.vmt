@@ -1,0 +1,7 @@
+"VertexlitGeneric"
+{
+	"$basetexture" "models/slash/garrus/TUR_HED_PROGarrus_Diff"
+	"$bumpmap" "models/slash/garrus/TUR_HED_PROGarrus_Damage_Norm"
+
+	"$halflambert" "1"
+}

@@ -1,0 +1,6 @@
+"VertexLitGeneric"
+{
+	// Original shader: VertexLitTexture
+	"$basetexture" "models/BILLYMAYS/citizen_sheet"
+	"$halflambert" 1
+}

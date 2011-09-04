@@ -1,0 +1,36 @@
+"UnlitGeneric"
+{
+	"$basetexture" "models/player/slow/fallout_3/tesla_power_armor/slow_glow"
+
+	"$model" 1
+	"$additive" 1
+	"$translucent" 1
+	"$nocull" 1
+
+	"$s-low" 0
+	"$s-low2" "0.35"
+	"$s-low3" 0	
+
+
+	"Proxies"
+	{
+		"EntityRandom"
+		{
+			"scale" 	"10"
+			"resultVar" 	"$s-low"
+		}
+		"Add"
+		{
+			"srcVar1"	"$s-low"
+			"srcVar2"	"$s-low2"
+			"resultVar"	"$s-low3"
+		}
+		"Sine"
+		{
+			"sineperiod"	"$s-low3"
+			"sinemin"	".35"
+			"sinemax"	"$s-low"
+			"resultVar"	"$alpha"
+		}
+	}
+}

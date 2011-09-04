@@ -1,0 +1,5 @@
+"vertexlitgeneric"
+{
+	"$baseTexture" "models\harry\texture05"
+	"$halflambert" 0
+}

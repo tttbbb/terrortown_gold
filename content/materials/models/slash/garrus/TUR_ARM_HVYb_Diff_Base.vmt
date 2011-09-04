@@ -1,0 +1,12 @@
+"VertexlitGeneric"
+{
+	"$basetexture" "models/slash/garrus/TUR_ARM_HVYb_Diff_Base"
+	"$bumpmap" "models/slash/garrus/TUR_ARM_HVYb_Norm_Base"
+	"$halflambert" "1"
+
+	"$phong" "1" 
+	"$phongboost" "0.01" 
+	"$phongfresnelranges" "[ 1 5 15]"
+	"$phongexponent" "60"
+	"$model" 1
+}

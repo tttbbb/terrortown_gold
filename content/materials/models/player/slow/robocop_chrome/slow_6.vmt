@@ -1,0 +1,10 @@
+"VertexlitGeneric"
+{
+	"$basetexture" "models/player/slow/robocop_chrome/slow_6"
+
+
+ 	"$phong" "1"
+	"$phongexponent" "3"
+	"$phongboost"	"0.4"
+	"$phongfresnelranges"	"[1 1 1]"
+}

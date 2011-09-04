@@ -1,0 +1,21 @@
+"VertexLitGeneric"
+{
+	"$baseTexture"	"models\player\Suigintou\cloth1"
+	"$alphatest"	1
+	"$bumpmap"	"models\player\Suigintou\cloth1_normal"
+	"$bumpscale"	2
+
+	"$phong"			1
+	"$phongexponent"		3
+	"$phongboost"		0.1
+	"$phongfresnelranges"	"[0 3 2]"
+	"$lightwarptexture"		"models\player\Suigintou/lightwarp"
+
+	"$halflambert"	1
+	"$nocull"		1
+	"$model"		1
+
+	"$rimlight"	1
+	"$rimlightexponent"	3
+	"$rimlightboost"	0.7
+}

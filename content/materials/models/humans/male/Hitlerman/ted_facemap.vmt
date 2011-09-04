@@ -1,0 +1,5 @@
+"VertexLitGeneric"
+{
+	"$baseTexture" "models\humans\male\Hitlerman/ted_facemap"
+	"$halflambert" 1						
+}
