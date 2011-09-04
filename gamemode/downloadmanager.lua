@@ -24,8 +24,8 @@ function AddFile(filein)
 		return
 	end
 	
-		resource.AddFile(filein)
-	Msg("====== Adding "..filein.."\n")
+	resource.AddFile(filein)
+	//Msg("====== Adding "..filein.."\n")
 end	
 
 function AddModel(file)

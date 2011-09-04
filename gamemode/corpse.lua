@@ -1,4 +1,4 @@
-﻿---- Corpse functions
+---- Corpse functions
 
 -- namespaced because we have no ragdoll metatable
 CORPSE = {}
@@ -364,6 +364,13 @@ function CORPSE.Create(ply, attacker, dmginfo)
     local wep = util.WeaponFromDamage(dmginfo)
 	
 	if (wep && (wep:GetClass() == "weapon_ttt_drilldo" || wep:GetClass() == "weapon_ttt_drilldo_admin")) then
+		/*gibParticle = ents.Create( "info_particle_system" )
+		gibParticle:SetPos(ply:GetPos())
+		gibParticle:SetKeyValue( "effect_name", "GrubBlood")
+		gibParticle:SetKeyValue( "start_active", "1")
+		gibParticle:Spawn()
+		gibParticle:Activate()
+		timer.Create("killpart" .. gibParticle:EntIndex(), 2, 1, removeParticle, gibParticle)*/
 		local i = 0;
 		while i < 30 do
 			local dildo = ents.Create("prop_physics")
@@ -443,7 +450,6 @@ function CORPSE.Create(ply, attacker, dmginfo)
       rag.bomb_wire = ply.bomb_wire
       rag.dmgtype = dmginfo:GetDamageType()
 
-	  local wep = util.WeaponFromDamage(dmginfo)
       rag.dmgwep = IsValid(wep) and wep:GetClass() or ""
 
       rag.was_headshot = ply.was_headshot
