@@ -17,6 +17,7 @@ function GM:PlayerBindPress(ply, bind, pressed)
 
    if bind == "invnext" and pressed then
       if ply:IsSpec() then
+		datastream.StreamToServer( "WheelHook", {true} );
          TIPS.Next()
       else
          WSWITCH:SelectNext()
@@ -24,6 +25,7 @@ function GM:PlayerBindPress(ply, bind, pressed)
       return true
    elseif bind == "invprev" and pressed then
       if ply:IsSpec() then
+		datastream.StreamToServer( "WheelHook", {false} );
          TIPS.Prev()
       else
          WSWITCH:SelectPrev()

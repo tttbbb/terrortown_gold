@@ -46,7 +46,7 @@ function GM:KeyRelease(ply, key)
 end
 
 
-local logo = surface.GetTextureID("VGUI/ttt/score_logo")
+local logo = surface.GetTextureID("VGUI/ttt/score_logo_bbb")
 local lw, lh = 215 / 2, 220 / 2
 local helptxt = {text="", font="Trebuchet22", xalign=TEXT_ALIGN_CENTER, color=COLOR_WHITE}
 local bgcolor = Color(200, 0, 0, 40)

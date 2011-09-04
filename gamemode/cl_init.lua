@@ -19,6 +19,7 @@ include("vgui/ProgressBar.lua")
 include("vgui/ScrollLabel.lua")
 
 include("cl_radio.lua")
+include("cl_jimhud.lua")
 include("cl_disguise.lua")
 include("cl_transfer.lua")
 include("cl_targetid.lua")
@@ -38,6 +39,8 @@ include("cl_scoring_events.lua")
 include("cl_popups.lua")
 include("cl_equip.lua")
 include("cl_voice.lua")
+include("cl_jim.lua")
+
 
 function GM:Initialize()
    MsgN("TTT Client initializing...")
