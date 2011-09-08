@@ -4,13 +4,10 @@ if SERVER then
    AddCSLuaFile( "shared.lua" )
 end
 
-
 if CLIENT then
    SWEP.PrintName = "Suicide Bomber"
    SWEP.Slot = 1
-
-   SWEP.Icon = ""
-   
+   //SWEP.Icon = ""
    SWEP.DrawCrosshair   = false
    SWEP.ViewModelFOV    = 82
    SWEP.ViewModelFlip   = false
@@ -41,6 +38,9 @@ SWEP.ScreamPatch 		= nil
 
 SWEP.Exploded = false
 SWEP.BombStage = 0 // 0 - Ready, 1 - Screaming
+SWEP.PendingExplosion = false
+SWEP.StartExplode = 0
+SWEP.ExplodeMinTime = 2.5
 
 function SWEP:Initialize()
 	self:MakeSound();
@@ -56,13 +56,14 @@ function SWEP:Think()
 	
 	if ( self.Owner:KeyPressed( IN_ATTACK ) && self.BombStage == 0) then
 		self:StartScream()
-	elseif ( self.Owner:KeyReleased( IN_ATTACK ) && self.BombStage == 1 ) then
+	elseif ((self.Owner:KeyReleased( IN_ATTACK ) && self.BombStage == 1) || self.PendingExplosion) then
 		self:DoExplode()
 	end
 end
 
 function SWEP:StartScream()
 	if (self.Exploded) then return end
+	self.StartExplode = CurTime()
 	self.BombStage = 1;
 	
 	if (self.ScreamPatch == nil) then self:MakeSound() end
@@ -75,6 +76,11 @@ end
 function SWEP:DoExplode()
 	if (self.Exploded) then return end
 	
+	if (self.StartExplode+self.ExplodeMinTime > CurTime()) then
+      self.PendingExplosion = true
+      return
+    end
+
 	self.Exploded = true;
 	
 	if (self.Owner && IsValid(self.Owner)) then
