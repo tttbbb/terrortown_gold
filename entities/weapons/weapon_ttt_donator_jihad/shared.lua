@@ -70,7 +70,7 @@ function SWEP:StartScream()
 	if (self.ScreamPatch == nil) then Msg("ERROR: Jihad sound still nil after attempted load...\n") return end
 	
 	self.ScreamPatch:Play()	
-	self.PlayerSpeedMod = 1.4
+	self.PlayerSpeedMod = 1.3
 end
 
 function SWEP:DoExplode()
@@ -93,7 +93,7 @@ function SWEP:DoExplode()
 		explode:SetOwner( self.Owner )
 		explode:Spawn()
 		explode:SetKeyValue( "iMagnitude", "350" )
-		explode:SetKeyValue( "iRadiusOverride", "460" )
+		explode:SetKeyValue( "iRadiusOverride", "560" )
 		explode:Fire( "Explode", 0, 0 )
 	else
 		Msg("Error: self.Entity wasn't valid...\n")
