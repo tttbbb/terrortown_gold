@@ -17,7 +17,7 @@ surface.CreateFont("coolvetica", 20, 400, true, false, "cool_small" )
 surface.CreateFont("coolvetica", 24, 400, true, false, "cool_large" )
 surface.CreateFont("Trebuchet18", 14, 700, true, false, "treb_small" )
 
-local logo = surface.GetTextureID("VGUI/ttt/score_logo_bbb")
+local logo = surface.GetTextureID("VGUI/ttt/score_logo")
 
 local PANEL = {}
 

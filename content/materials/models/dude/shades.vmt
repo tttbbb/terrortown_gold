@@ -1,5 +1,0 @@
-"VertexLitGeneric"
-{
-	// Original shader: VertexLitMaskedEnvMappedTexture
-	"$basetexture" "models/dude/dude"
-}

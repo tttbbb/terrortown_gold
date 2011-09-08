@@ -66,7 +66,7 @@ function GM:PostDrawTranslucentRenderables()
       for i=1, #plys do
          ply = plys[i]
          tgt = ply:GetObserverTarget()
-         if IsValid(tgt) and tgt:GetNWEntity("spec_owner", nil) == ply && !IsTTTAdmin(ply) then
+         if IsValid(tgt) and tgt:GetNWEntity("spec_owner", nil) == ply then
             SetMaterialOverride(propspec_outline)
             render.SuppressEngineLighting(true)
             render.SetColorModulation(1, 0.5, 0)
@@ -175,7 +175,6 @@ function GM:HUDDrawTargetID()
    local hint = (not minimal) and (ent.TargetIDHint or ClassHint[cls])
 
    if ent:IsPlayer() then
-		if (ent:GetNWBool("jim_barrel",false) == true) then return end
       if ent:GetNWBool("disguised", false) then
          client.last_id = nil
 

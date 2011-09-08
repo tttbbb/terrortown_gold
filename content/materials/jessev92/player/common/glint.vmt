@@ -1,7 +1,0 @@
-"UnlitGeneric"
-{
-	// Original shader: AddTexture
-	"$basetexture" "jessev92\player\common\glint"
-	"$additive" 1
-	"$model" 1
-}

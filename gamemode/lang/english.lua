@@ -143,7 +143,7 @@ L.radio_button_steps   = "Footsteps"
 
 
 -- Intro screen shown after joining
-L.intro_help     = "If you're new to the game, GO AWAY"
+L.intro_help     = "If you're new to the game, press F1 for instructions!"
 
 -- Chat-related
 L.spec_teamchat_hint = "HINT: As spectator, use team chat to talk during an active round!"
@@ -418,11 +418,11 @@ it can be damaged. Can be checked for
 DNA samples of its users.]]
 
 -- Knife
-L.knife_name      = "Instakill Knife"
+L.knife_name      = "Knife"
 L.knife_thrown    = "Thrown knife"
 
 L.knife_desc      = [[
-Kills targets instantly and
+Kills wounded targets instantly and
 silently, but only has a single use.
 
 Can be thrown using alternate fire.]]
@@ -462,21 +462,6 @@ L.newton_desc     = [[
 Push people from a safe distance.
 
 Infinite ammo, but slow to fire.]]
-
--- drilldo launcher
-L.drilldo_name     = "Drilldo"
-
-L.drilldo_desc     = [[
-BIG BLACK DICK ON A DRILL
-NOISY, BUT EXPLODES THE 
-SODOMISED VICTIM
-
-ALLOWS YOU TO CHARGE 
-AT THE FUCKERS 
-]]
-
-L.drilldo_help_pri  = "{primaryfire} to SPIN YOUR BLACK COCK."
-L.drilldo_help_sec  = "{secondaryfire} to CHARGE AT THE FUCKERS."
 
 -- Binoculars
 L.binoc_name      = "Binoculars"
@@ -539,7 +524,7 @@ L.magnet_name     = "Magneto-stick"
 L.magnet_help     = "{primaryfire} to attach body to surface."
 
 -- Grenades and misc
-L.grenade_smoke   = "Meatbang"
+L.grenade_smoke   = "Smoke grenade"
 L.grenade_fire    = "Incendiary grenade"
 
 L.unarmed_name    = "Holstered"
@@ -601,11 +586,11 @@ L.hp_death     = "Near Death"
 
 
 -- TargetID karma status
-L.karma_max    = "Max Karma"
-L.karma_high   = "High Karma"
-L.karma_med    = "Medium Karma"
-L.karma_low    = "Low Karma"
-L.karma_min    = "CUNT"
+L.karma_max    = "Reputable"
+L.karma_high   = "Crude"
+L.karma_med    = "Trigger-happy"
+L.karma_low    = "Dangerous"
+L.karma_min    = "Liability"
 
 -- TargetID misc
 L.corpse       = "Corpse"
@@ -760,7 +745,7 @@ L.tip32 = "The Crowbar's secondary fire will push other players."
 
 L.tip33 = "Firing through the ironsights of a weapon will slightly increase your accuracy and decrease recoil. Crouching does not."
 
-L.tip34 = "Meatspin Grenades are FUCKING AWESOME"
+L.tip34 = "Smoke grenades are effective indoors, especially for creating confusion in crowded rooms."
 
 L.tip35 = "As Traitor, remember you can carry dead bodies and hide them from the prying eyes of the innocent and their Detectives."
 

@@ -1,8 +1,0 @@
-VertexLitGeneric
-{
-	$basetexture 	models\gingerbread\gingerman_tex.vtf
-	$surfaceprop 	flesh
-	$phong			1
-
-	$bumpmap 	models\gingerbread\gingerman_tex_n.vtf
-}

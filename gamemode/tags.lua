@@ -7,6 +7,22 @@ local base_dir = "gamemodes/" .. GM.FolderName .. "/"
 local crc32 = util.CRC
 local fread = file.Read
 function GM:CheckFileConsistency()
+   MsgN("Checking TTT file consistency.")
+   self.LocalCRCs = {}
+   self.ModdedScripts = {}
+
+   -- Loop over crc table and check values against local files
+   for fname, crc in pairs(self.CRCs) do
+      -- Why does util.CRC return a string?
+      local crc_local = crc32(fread(base_dir .. fname, true))
+      self.LocalCRCs[fname] = crc_local
+
+      if crc_local != crc then
+         table.insert(self.ModdedScripts, fname)
+
+         Dev(1, Format("Script %s is modded: %s != %s", fname, crc, crc_local))
+      end
+   end
 end
 
 local function IsModded(fname)
@@ -14,7 +30,7 @@ local function IsModded(fname)
 end
 
 local knife_scripts = {
-   "entities/weapons/weapon_ttt_knife_instakill/shared.lua",
+   "entities/weapons/weapon_ttt_knife/shared.lua",
    "entities/entities/ttt_knife_proj/shared.lua"
 };
                        
@@ -85,5 +101,5 @@ function GM:UpdateServerTags(remove_only)
       Dev(1, "Adding to sv_tags: " .. tags_new)
    end
 
-   //RunConsoleCommand("sv_tags", tags_old .. tags_new)
+   RunConsoleCommand("sv_tags", tags_old .. tags_new)
 end

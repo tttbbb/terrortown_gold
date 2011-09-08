@@ -1,8 +1,0 @@
-"VertexLitGeneric"
-{
-    $basetexture "models/renamon2009/renamon"
-    $bumpmap "models/renamon2009/renamon_normal"
-
-    $halflambert 1
-    $model 1
-}

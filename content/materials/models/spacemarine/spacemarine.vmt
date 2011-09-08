@@ -1,7 +1,0 @@
-"VertexLitGeneric"
-{
-	"$baseTexture" "models\spacemarine\spacemarine"
-	"$bumpMap" "models\spacemarine\spacemarine_n"
-
-	//"$selfillum" 1
-}

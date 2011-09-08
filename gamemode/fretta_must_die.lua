@@ -128,7 +128,7 @@ function GM:StartFrettaVote()
 
    if ttt_mapvoting:GetBool() then
       -- manually set what would be the result of a GM vote otherwise
-      GAMEMODE.WinningGamemode = "terrortown_gold"
+      GAMEMODE.WinningGamemode = "terrortown"
 
       SetGlobalBool("InGamemodeVote", true)
       GAMEMODE.m_bVotingStarted = true
@@ -138,7 +138,7 @@ function GM:StartFrettaVote()
       GAMEMODE:StartMapVote()
    else
       -- switching gamemodes, so remove ttt-specific tags
-      //GAMEMODE:UpdateServerTags(true)
+      GAMEMODE:UpdateServerTags(true)
 
       GAMEMODE.BaseClass.StartGamemodeVote(GAMEMODE)
    end

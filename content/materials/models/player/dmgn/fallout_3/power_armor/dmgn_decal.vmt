@@ -1,7 +1,0 @@
-"VertexlitGeneric"
-{
-	"$basetexture" "models/player/dmgn/fallout_3/power_armor/dmgn_decal"
-	"$bumpmap" "models/player/dmgn/fallout_3/power_armor/dmgn_decal_bump"
-
-	"$translucent" 1
-}

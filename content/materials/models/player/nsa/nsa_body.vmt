@@ -1,5 +1,0 @@
-"VertexLitGeneric"
-{
-	"$baseTexture" "models\player\nsa\nsa_body"
-	"$bumpmap" "models\player\nsa\nsa_body_n"
-}

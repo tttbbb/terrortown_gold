@@ -169,8 +169,6 @@ function plymeta:ResetRoundFlags()
 
    -- karma
    self:SetCleanRound(true)
-   
-   self.Gimped = false
 
    self:Freeze(false)
 end
@@ -206,28 +204,16 @@ function plymeta:RecordKill(victim)
 end
 
 
-function plymeta:SetSpeed(slowed, boost)
-	local speedMul = 1;
-	local speedBase = 220;
-	
-	local wep = self:GetActiveWeapon();
-	if (IsValid(wep) && wep.PlayerSpeedMod) then
-		speedMul = wep.PlayerSpeedMod
-	end
-
-	if (self.IsPin) then //Are they a pin? Just freeze them.
-		self:SetWalkSpeed(1)
-		self:SetRunSpeed(1)
-		self:SetMaxSpeed(1)
-		return
-	end
-	
-	if slowed then speedBase = 120 end
-	if self.charging then speedBase = 440 end
-	
-	self:SetWalkSpeed(speedBase*speedMul)
-	self:SetRunSpeed(speedBase*speedMul)
-	self:SetMaxSpeed(speedBase*speedMul)
+function plymeta:SetSpeed(slowed)
+   if slowed then
+      self:SetWalkSpeed(120)
+      self:SetRunSpeed(120)
+      self:SetMaxSpeed(120)
+   else
+      self:SetWalkSpeed(220)
+      self:SetRunSpeed(220)
+      self:SetMaxSpeed(220)
+   end
 end
 
 function plymeta:ResetLastWords()

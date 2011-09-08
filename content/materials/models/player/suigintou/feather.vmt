@@ -1,7 +1,0 @@
-"VertexlitGeneric"
-{
-	"$baseTexture"		"models\player\Suigintou\feather"
-	"$translucent"		1
-	"$halflambert"		1
-	"$model"			1
-}

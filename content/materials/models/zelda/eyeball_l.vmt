@@ -1,7 +1,0 @@
-"eyes"
-{
-	"$baseTexture" "models\Zelda/eyeball_l"
-	"$iris" "models\zelda/ZeldSS07"
-	"$halflambert" 1
-	"$nodecal" "1"
-}

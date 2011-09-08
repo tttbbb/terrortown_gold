@@ -1,6 +1,0 @@
-"VertexLitGeneric"
-{
-	// Original shader: VertexLitTexture
-	"$basetexture" "jessev92\player\common\ted_facemap"
-	"$halflambert" 1
-}

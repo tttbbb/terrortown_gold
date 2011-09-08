@@ -451,7 +451,6 @@ end
 concommand.Add("ttt_cl_traitorpopup_close", ForceCloseTraitorMenu)
 
 function GM:OnContextMenuOpen()
-	if (LocalPlayer():GetNWBool("jim_ispin",false)) then return end
    local r = GetRoundState()
    if r == ROUND_ACTIVE and not (LocalPlayer():GetTraitor() or LocalPlayer():GetDetective()) then 
       return

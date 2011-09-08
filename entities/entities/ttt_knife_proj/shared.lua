@@ -147,7 +147,7 @@ if SERVER then
    function ENT:BecomeWeapon()
       self.Weaponised = true
 
-      local wep = ents.Create("weapon_ttt_knife_instakill")
+      local wep = ents.Create("weapon_ttt_knife")
       wep:SetPos(self:GetPos())
       wep:SetAngles(self:GetAngles())
       wep.IsDropped = true

@@ -297,8 +297,8 @@ function ENT:IsDetectiveNear()
 
    return false
 end
+
 local beep = Sound("weapons/c4/c4_beep1.wav")
-local beep2 = Sound("cunt/melon_solo.wav")
 function ENT:Think()
 
    local etime = self:GetExplodeTime()
@@ -339,7 +339,6 @@ function ENT:Think()
 
       if SERVER then
          WorldSound(beep, self:GetPos(), amp, 100)
-         WorldSound(beep2, self:GetPos(), amp, 100)
       end
 
       local btime = (etime - CurTime()) / 30
@@ -493,18 +492,15 @@ if SERVER then
 
       local bomb = ents.GetByIndex(idx)
       if ValidEntity(bomb) and bomb:GetArmed() then
-         if bomb.SafeWires[wire] or ply:IsTraitor() or ply == bomb:GetOwner() then
+         if bomb:GetPos():Distance(ply:GetPos()) > 256 then
+            return
+         elseif bomb.SafeWires[wire] or ply:IsTraitor() or ply == bomb:GetOwner() then
+            LANG.Msg(ply, "c4_disarmed")
 
-            if bomb:GetPos():Distance(ply:GetPos()) > 256 then
-               return
-            else
-               LANG.Msg(ply, "c4_disarmed")
+            bomb:Disarm(ply)
 
-               bomb:Disarm(ply)
-
-               -- only case with success umsg
-               SendDisarmResult(ply, idx, true)
-            end
+            -- only case with success umsg
+            SendDisarmResult(ply, idx, true)
          else
             SendDisarmResult(ply, idx, false)
 

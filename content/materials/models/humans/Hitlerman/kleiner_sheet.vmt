@@ -1,6 +1,0 @@
-"VertexLitGeneric"
-{
-	"$baseTexture" "models\humans\Hitlerman\kleiner_sheet"
-	"$bumpmap" "models\humans\Hitlerman\kleiner_sheet_n"
-	"$halflambert" 1
-}

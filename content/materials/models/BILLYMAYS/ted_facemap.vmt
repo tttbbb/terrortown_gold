@@ -1,6 +1,0 @@
-"VertexLitGeneric"
-{
-	// Original shader: VertexLitTexture
-	"$basetexture" "models/BILLYMAYS/ted_facemap"
-	"$halflambert" 1
-}

@@ -1,6 +1,0 @@
-"VertexLitGeneric"
-{
-	// Original shader: VertexLitTexture
-	"$basetexture" "models/humans\jackntie/erdim_cylmap"
-	"$halflambert" 1
-}

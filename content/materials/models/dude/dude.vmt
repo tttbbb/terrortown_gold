@@ -1,8 +1,0 @@
-"VertexLitGeneric"
-{
-	// Original shader: VertexLitMaskedEnvMappedTexture
-	
-	"$basetexture" "models/dude/dude"
-}
-
-// "Postal Dude used by permission ©&TM Running WIth Scissors Inc. All Rights Reserved"

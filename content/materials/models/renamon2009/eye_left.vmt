@@ -1,6 +1,0 @@
-"eyes"
-{
-    $basetexture "models/renamon2009/eye_left"
-    "$iris" "models/renamon2009/iris"
-    $halflambert 1
-}

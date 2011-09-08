@@ -153,11 +153,6 @@ local loc_voice = CreateConVar("ttt_locational_voice", "0")
 
 -- Of course voice has to be limited as well
 function GM:PlayerCanHearPlayersVoice( listener, speaker )
-
-	if (speaker:GetNWBool("jim_alltalk",false) == true) then
-		return true, false
-	end
-	
    -- Enforced silence
    if mute_all then
       return false, false
@@ -239,7 +234,7 @@ local function MuteTeam(ply, cmd, args)
 end
 concommand.Add("ttt_mute_team", MuteTeam)
 
-local ttt_lastwords = CreateConVar("ttt_lastwords_chatprint", "1")
+local ttt_lastwords = CreateConVar("ttt_lastwords_chatprint", "0")
 
 local LastWordContext = {
    [KILL_NORMAL] = "",
@@ -287,7 +282,7 @@ local function LastWords(ply, cmd, args)
          local words = string.Trim(args[3])
 
          -- nothing of interest
-         //if string.len(words) < 2 then return end
+         if string.len(words) < 2 then return end
 
          if ttt_lastwords:GetBool() or ply.death_type == KILL_FALL then
             LastWordsMsg(ply, words)

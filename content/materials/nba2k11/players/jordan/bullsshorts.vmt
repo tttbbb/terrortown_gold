@@ -1,7 +1,0 @@
-"VertexLitGeneric"
-{
-	"$basetexture" "nba2k11/players/jordan/bullsshorts"
-	"$surfaceprop" "plaster"
-	"$bumpmap" "nba2k11/players/jordan/bullsshorts_normal"
-	"$normalmapalphaenvmapmask" "1"
-}
