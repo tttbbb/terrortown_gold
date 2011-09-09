@@ -22,15 +22,18 @@ SWEP.Base = "ep2snip_base"
 SWEP.HoldType = "ar2"
 
 SWEP.Primary.Sound			= Sound("jaanus/ep2sniper_fire.wav")
-SWEP.Primary.Damage			= 28 -- This determines both the damage dealt and force applied by the bullet.
+SWEP.Primary.Damage			= 40 -- This determines both the damage dealt and force applied by the bullet.
 SWEP.Primary.NumShots		= 1
-SWEP.Primary.ClipSize		= 16
-SWEP.Primary.DefaultClip	= 16
+SWEP.Primary.ClipSize		= 8
+SWEP.Primary.DefaultClip	= 8
 SWEP.Primary.Ammo			= "UnobtainableAmmo"
 SWEP.Primary.ReloadSound	= "jaanus/ep2sniper_reload.wav"
 SWEP.MuzzleVelocity			= 10000 -- How fast the bullet travels in meters per second. For reference, an AK47 shoots at about 750, an M4 shoots at about 900, and a Luger 9mm shoots at about 350 (source: Wikipedia)
 
 SWEP.DeploySpeed = 0.25
+
+SWEP.PlayerSpeedMod = 1
+
 
 ---------------------------------------
 -- Recoil, Spread, and Spray --
