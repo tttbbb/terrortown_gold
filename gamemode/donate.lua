@@ -35,6 +35,7 @@
 // 37 - doomguy
 // 38 - joker
 // 39 - CJ
+// 40 - fat black guy
 
 
 aDonators = {}
@@ -64,7 +65,7 @@ aDonators["STEAM_0:1:10499372"] = 23; // Jaanus
 aDonators["STEAM_0:1:5329312"] = 24; // t2lgoose
 aDonators["STEAM_0:1:25065249"] = 25; // theforeigner
 aDonators["STEAM_0:1:19291688"] = 27; // natrox
-aDonators["STEAM_0:0:13767019"] = 28; // jim
+aDonators["STEAM_0:0:13767019"] = 40; // jim
 aDonators["STEAM_0:1:5902503"] = 29; // redback3
 aDonators["STEAM_0:0:13366632"] = 30; // davidofmk
 aDonators["STEAM_0:0:6938520"] = 31; // onion
@@ -76,6 +77,7 @@ aDonators["STEAM_0:1:9769230"] = 36; // mercz
 aDonators["STEAM_0:1:3880"] = 37; // nomadic
 aDonators["STEAM_0:1:6699149"] = 38; // stepthroat
 aDonators["STEAM_0:1:16612480"] = 39; // smurfy
+aDonators["STEAM_0:0:16054975"] = 40; // ollih
 
 function donationGetCustomModel(ply,mdl)
 	if (ply.Donation == 1) then 
@@ -206,6 +208,9 @@ function donationGetCustomModel(ply,mdl)
 	elseif (ply.Donation == 39) then 
 		ply:ChatPrint("Using special playermodel: cj")
 		return "models/francis115/carljohnson/carljohnson.mdl"
+	elseif (ply.Donation == 40) then 
+		ply:ChatPrint("Using special playermodel: Fat black guy")
+		return "models/player/slow/amberlyn/re5/fat_majini/slow.mdl"
 	end
 	
 	return mdl
@@ -506,4 +511,8 @@ AddDir("materials/models/francis115/cj")
 //Subzero
 AddDir("models/player/slow/amberlyn/mkvsdcu/subzero")
 AddDir("materials/models/player/slow/amberlyn/mkvsdcu/subzero")
+
+//fat black guy
+AddDir("models/player/slow/amberlyn/re5/fat_majini")
+AddDir("materials/models/player/slow/amberlyn/re5/fat_majini")
 

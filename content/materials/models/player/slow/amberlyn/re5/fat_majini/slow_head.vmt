@@ -1,0 +1,10 @@
+"VertexlitGeneric"
+{
+	"$basetexture" "models/player/slow/amberlyn/re5/fat_majini/slow_head"
+	"$bumpmap" "models/player/slow/amberlyn/re5/fat_majini/slow_head_bump"
+
+	"$phong" 			"1"
+	"$phongexponent" 		"3"
+	"$phongboost"		"1.7"
+	"$phongfresnelranges"	"[.05 .1 .2]"
+}
