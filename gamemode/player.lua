@@ -442,20 +442,20 @@ local function SpecUseKey(ply, cmd, arg)
 		for k,v in pairs(targents) do
 			local dist = tr.HitPos:Distance(v:GetPos());
 			local distToPly = ply:GetPos():Distance(v:GetPos())
-			if (dist && distToPly && dist > 0 && distToPly != 0) then 
+			if (dist && distToPly && dist > 0 && distToPly != 0) then
 				if (ourtargdist == -1 || dist < ourtargdist) then
 					ourtargent = v;
 					ourtargdist = dist;
 				end
-			
+
 			end
 		end
-		
-		//ErrorNoHalt(Format("Target %s dist %i to ply %i",v:GetClass(),dist, distToPly)) 
-		if (ourtargent != -1 && IsValid(ourtargent)) then 
-			//ErrorNoHalt(Format("Picking %s, %i",ourtargent:GetClass(),ourtargdist)) 
+
+		//ErrorNoHalt(Format("Target %s dist %i to ply %i",v:GetClass(),dist, distToPly))
+		if (ourtargent != -1 && IsValid(ourtargent)) then
+			//ErrorNoHalt(Format("Picking %s, %i",ourtargent:GetClass(),ourtargdist))
 			PROPSPEC_A.Target(ply, ourtargent,1)
-		end		
+		end
 	  end
    end
 end
@@ -553,7 +553,7 @@ local function CheckCreditAward(victim, attacker)
       local inno_alive = 0
       local inno_dead = 0
       local inno_total = 0
-      
+
       for _, ply in pairs(player.GetAll()) do
          if not ply:GetTraitor() then
             if ply:IsTerror() then
@@ -1098,30 +1098,30 @@ function GM:Tick()
    plys = player.GetAll()
    for i= 1, #plys do
       ply = plys[i]
-	  
+
 	  local chargemod = 0;
-	  if (ply.charging) then 
+	  if (ply.charging) then
 		local wep = ply:GetActiveWeapon();
 		if (wep:IsValid() && wep:GetClass() == "weapon_ttt_drilldo_admin") then
-			chargemod = -0.01 
+			chargemod = -0.01
 		else
 			chargemod = -0.75
-		
+
 		end
 	  else chargemod = 0.25 end
-	  
+
 	  if (!ply.cancharge && ply.charge == 100) then ply.cancharge = true end
-	  if (ply.charge == 0) then 
+	  if (ply.charge == 0) then
 		ply.cancharge = false
 		ply.charging = false
 	  end
-	  
-	  ply.charge = math.Clamp(ply.charge+chargemod,0,100);
-	  
+
+	  ply.charge = math.Clamp((ply.charge or 0)+chargemod,0,100);
+
 	  ply:SetNWBool("pl_cancharge", ply.cancharge)
 	  ply:SetNWBool("pl_charging", ply.charging)
 	  ply:SetNWFloat("pl_charge", ply.charge)
-	  
+
       tm = ply:Team()
       if tm == TEAM_TERROR and ply:Alive() then
          -- Drowning
