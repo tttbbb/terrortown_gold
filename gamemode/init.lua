@@ -2,6 +2,8 @@
 AddCSLuaFile("datastream.lua")
 AddCSLuaFile("cl_init.lua")
 AddCSLuaFile("shared.lua")
+AddCSLuaFile("cl_jim.lua")
+AddCSLuaFile("thirdperson.lua")
 AddCSLuaFile("cl_jimhud.lua")
 AddCSLuaFile("cl_hud.lua")
 AddCSLuaFile("cl_msgstack.lua")
