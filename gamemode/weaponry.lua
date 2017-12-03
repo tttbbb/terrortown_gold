@@ -1,20 +1,14 @@
 
 include("weaponry_shd.lua") -- inits WEPS tbl
 
--- Pool all SWEP classnames, as we will be sending some over the wire regularly
-for k, w in pairs(weapons.GetList()) do
-   if w then
-      umsg.PoolString(w.Classname)
-   end
-end
-
 ---- Weapon system, pickup limits, etc
 
 local IsEquipment = WEPS.IsEquipment
 
 -- Prevent players from picking up multiple weapons of the same type etc
 function GM:PlayerCanPickupWeapon(ply, wep)
-   if not IsValid(wep) and not IsValid(ply) then return end
+   if not IsValid(wep) or not IsValid(ply) then return end
+   if ply:IsSpec() then return false end
 
    if (ply.Gimped && wep:GetClass() != ply.Gimped) then return false end
    
@@ -48,7 +42,7 @@ local function GetLoadoutWeapons(r)
       for k, w in pairs(weapons.GetList()) do
          if w and type(w.InLoadoutFor) == "table" then
             for _, wrole in pairs(w.InLoadoutFor) do
-               table.insert(tbl[wrole], w.Classname)
+               table.insert(tbl[wrole], WEPS.GetClass(w))
             end
          end
       end
@@ -67,7 +61,7 @@ local function GiveLoadoutWeapons(ply)
    if not weps then return end
 
    for _, cls in pairs(weps) do
-      if not ply:HasWeapon(cls) then
+      if not ply:HasWeapon(cls) and ply:CanCarryType(WEPS.TypeForWeapon(cls)) then
          ply:Give(cls)
       end
    end
@@ -84,7 +78,7 @@ local function HasLoadoutWeapons(ply)
 
 
    for _, cls in pairs(weps) do
-      if not ply:HasWeapon(cls) then
+      if not ply:HasWeapon(cls) and ply:CanCarryType(WEPS.TypeForWeapon(cls)) then
          return false
       end
    end
@@ -113,10 +107,10 @@ local function CanWearHat(ply)
    return table.HasValue(Hattables, path[3])
 end
 
-CreateConVar("ttt_detective_hats", "1")
+CreateConVar("ttt_detective_hats", "0")
 -- Just hats right now
 local function GiveLoadoutSpecial(ply)
-   if ply:IsDetective() and  CanWearHat(ply) then
+   if ply:IsActiveDetective() and GetConVar("ttt_detective_hats"):GetBool() and CanWearHat(ply) then
 
       if not IsValid(ply.hat) then
          local hat = ents.Create("ttt_hat_deerstalker")
@@ -143,16 +137,16 @@ end
 -- possible.
 local function LateLoadout(id)
    local ply = player.GetByID(id)
-   if not IsValid(ply) then 
-      timer.Destroy("lateloadout" .. id)
-      return 
+   if not IsValid(ply) then
+      timer.Remove("lateloadout" .. id)
+      return
    end
 
    if not HasLoadoutWeapons(ply) then
       GiveLoadoutWeapons(ply)
 
       if HasLoadoutWeapons(ply) then
-         timer.Destroy("lateloadout" .. id)
+         timer.Remove("lateloadout" .. id)
       end
    end
 end
@@ -173,19 +167,21 @@ function GM:PlayerLoadout( ply )
 
       if not HasLoadoutWeapons(ply) then
          MsgN("Could not spawn all loadout weapons for " .. ply:Nick() .. ", will retry.")
-         timer.Create("lateloadout" .. ply:EntIndex(), 1, 0, LateLoadout, ply:EntIndex())
+         timer.Create("lateloadout" .. ply:EntIndex(), 1, 0,
+                      function() LateLoadout(ply:EntIndex()) end)
       end
    end
 end
 
 function GM:UpdatePlayerLoadouts()
-   for k, v in pairs(player.GetAll()) do
-      GAMEMODE:PlayerLoadout(v)
+   for _, ply in ipairs(player.GetAll()) do
+      hook.Call("PlayerLoadout", GAMEMODE, ply)
    end
 end
 
 ---- Weapon switching
 local function ForceWeaponSwitch(ply, cmd, args)
+   if not ply:IsPlayer() or not args[1] then return end
    -- Turns out even SelectWeapon refuses to switch to empty guns, gah.
    -- Worked around it by giving every weapon a single Clip2 round.
    -- Works because no weapon uses those.
@@ -205,12 +201,6 @@ concommand.Add("wepswitch", ForceWeaponSwitch)
 
 function WEPS.DropNotifiedWeapon(ply, wep, death_drop)
    if IsValid(ply) and IsValid(wep) then
-		
-	  if (!wep.DropOnDeath) then 
-	  	wep:Remove()
-	  	ply:SelectWeapon("weapon_ttt_unarmed")
-	  end
-   
       -- Hack to tell the weapon it's about to be dropped and should do what it
       -- must right now
       if wep.PreDrop then
@@ -283,7 +273,7 @@ local function DropActiveAmmo(ply)
    ply:AnimPerformGesture(ACT_ITEM_GIVE)
 
    local box = ents.Create(wep.AmmoEnt)
-   if not IsValid(box) then box:Remove() end
+   if not IsValid(box) then return end
 
    box:SetPos(pos + dir)
    box:SetOwner(ply)
@@ -311,15 +301,15 @@ concommand.Add("ttt_dropammo", DropActiveAmmo)
 -- Give a weapon to a player. If the initial attempt fails due to heisenbugs in
 -- the map, keep trying until the player has moved to a better spot where it
 -- does work.
-local function GiveEquipmentWeapon(uid, cls)
-   -- Referring to players by UID because a player may disconnect while his
+local function GiveEquipmentWeapon(sid, cls)
+   -- Referring to players by SteamID because a player may disconnect while his
    -- unique timer still runs, in which case we want to be able to stop it. For
-   -- that we need its name, and hence his uid.
-   local ply = player.GetByUniqueID(uid)
-   local tmr = "give_equipment" .. tostring(uid)
+   -- that we need its name, and hence his SteamID.
+   local ply = player.GetBySteamID(sid)
+   local tmr = "give_equipment" .. sid
 
    if (not IsValid(ply)) or (not ply:IsActiveSpecial()) then
-      timer.Destroy(tmr)
+      timer.Remove(tmr)
       return
    end
 
@@ -328,14 +318,14 @@ local function GiveEquipmentWeapon(uid, cls)
    local w = ply:Give(cls)
 
    if (not IsValid(w)) or (not ply:HasWeapon(cls)) then
-      if not timer.IsTimer(tmr) then
-         timer.Create(tmr, 1, 0, GiveEquipmentWeapon, uid, cls)
+      if not timer.Exists(tmr) then
+         timer.Create(tmr, 1, 0, function() GiveEquipmentWeapon(sid, cls) end)
       end
 
       -- we will be retrying
    else
       -- can stop retrying, if we were
-      timer.Destroy(tmr)
+      timer.Remove(tmr)
 
       if w.WasBought then
          -- some weapons give extra ammo after being bought, etc
@@ -345,7 +335,12 @@ local function GiveEquipmentWeapon(uid, cls)
 end
 
 local function HasPendingOrder(ply)
-   return timer.IsTimer("give_equipment" .. tostring(ply:UniqueID()))
+   return timer.Exists("give_equipment" .. tostring(ply:SteamID()))
+end
+
+function GM:TTTCanOrderEquipment(ply, id, is_item)
+   --- return true to allow buying of an equipment item, false to disallow
+   return true
 end
 
 -- Equipment buying
@@ -360,6 +355,8 @@ local function OrderEquipment(ply, cmd, args)
    -- it's an item if the arg is an id instead of an ent name
    local id = args[1]
    local is_item = tonumber(id)
+   
+   if not hook.Run("TTTCanOrderEquipment", ply, id, is_item) then return end
 
    -- we use weapons.GetStored to save time on an unnecessary copy, we will not
    -- be modifying it
@@ -390,15 +387,6 @@ local function OrderEquipment(ply, cmd, args)
          if not ply:HasEquipmentItem(id) then
             ply:GiveEquipmentItem(id)
             received = true
-
-            if id == EQUIP_RADAR then
-               -- wait until the client knows we have a radar
-               timer.Simple(0.5, function()
-                                    if IsValid(ply) then
-                                       ply:ConCommand("ttt_radar_scan")
-                                    end
-                                 end)
-            end
          end
       end
    elseif swep_table then
@@ -418,7 +406,7 @@ local function OrderEquipment(ply, cmd, args)
       -- no longer restricted to only WEAPON_EQUIP weapons, just anything that
       -- is whitelisted and carryable
       if ply:CanCarryWeapon(swep_table) then
-         GiveEquipmentWeapon(ply:UniqueID(), id)
+         GiveEquipmentWeapon(ply:SteamID(), id)
 
          received = true
       end
@@ -429,16 +417,36 @@ local function OrderEquipment(ply, cmd, args)
       LANG.Msg(ply, "buy_received")
 
       ply:AddBought(id)
+
+      timer.Simple(0.5,
+                   function()
+                      if not IsValid(ply) then return end
+                      net.Start("TTT_BoughtItem")
+                      net.WriteBit(is_item)
+                      if is_item then
+                         net.WriteUInt(id, 16)
+                      else
+                         net.WriteString(id)
+                      end
+                      net.Send(ply)
+                   end)
+
+      hook.Call("TTTOrderedEquipment", GAMEMODE, ply, id, is_item)
    end
 end
 concommand.Add("ttt_order_equipment", OrderEquipment)
 
+function GM:TTTToggleDisguiser(ply, state)
+   -- Can be used to prevent players from using this button.
+   -- return true to prevent it.
+end
 
 local function SetDisguise(ply, cmd, args)
    if not IsValid(ply) or not ply:IsActiveTraitor() then return end
 
    if ply:HasEquipmentItem(EQUIP_DISGUISE) then
       local state = #args == 1 and tobool(args[1])
+      if hook.Run("TTTToggleDisguiser", ply, state) then return end
 
       ply:SetNWBool("disguised", state)
       LANG.Msg(ply, state and "disg_turned_on" or "disg_turned_off")
@@ -447,21 +455,21 @@ end
 concommand.Add("ttt_set_disguise", SetDisguise)
 
 local function CheatCredits(ply)
-   if server_settings.Bool("sv_cheats", false) and IsValid(ply) then
+   if IsValid(ply) then
       ply:AddCredits(10)
    end
 end
-concommand.Add("ttt_cheat_credits", CheatCredits)
+concommand.Add("ttt_cheat_credits", CheatCredits, nil, nil, FCVAR_CHEAT)
 
 local function TransferCredits(ply, cmd, args)
    if (not IsValid(ply)) or (not ply:IsActiveSpecial()) then return end
    if #args != 2 then return end
 
-   local uid = tostring(args[1])
+   local sid = tostring(args[1])
    local credits = tonumber(args[2])
-   if uid and credits then
-      local target = player.GetByUniqueID(uid)
-      if (not IsValid(target)) or (not target:IsActiveSpecial()) or (target == ply) then
+   if sid and credits then
+      local target = player.GetBySteamID(sid)
+      if (not IsValid(target)) or (not target:IsActiveSpecial()) or (target:GetRole() ~= ply:GetRole()) or (target == ply) then
          LANG.Msg(ply, "xfer_no_recip")
          return
       end
@@ -494,42 +502,15 @@ function GM:WeaponEquip(wep)
    end
 end
 
-
-function WEPS.HasCustomEquipment()
-   -- first look at SWEPs
-   for _, wep in pairs(weapons.GetList()) do
-      if wep and wep.Kind then
-         local roles = nil
-         if IsEquipment(wep) then
-            -- this will be nil if weapon is disabled
-            roles = wep.CanBuy
-         else
-            -- normal weapons not only buyable by a specific role, can be
-            -- map-placed or spawned from a random weapon
-            roles = { ROLE_NONE }
-         end
-
-         if roles then
-            for _, role in pairs(roles) do
-               if not table.HasValue(DefaultEquipment[role], wep.Classname) then
-                  return true
-               end
-            end
-         end
+-- non-cheat developer commands can reveal precaching the first time equipment
+-- is bought, so trigger it at the start of a round instead
+function WEPS.ForcePrecache()
+   for k, w in ipairs(weapons.GetList()) do
+      if w.WorldModel then
+         util.PrecacheModel(w.WorldModel)
+      end
+      if w.ViewModel then
+         util.PrecacheModel(w.ViewModel)
       end
    end
-
-   -- then at items
-   for role, items in pairs(EquipmentItems) do
-      local deq = DefaultEquipment[role]
-      for _, item in pairs(items) do
-         if item and item.id then
-            if not table.HasValue(deq, item.id) then
-               return true
-            end
-         end
-      end
-   end
-
-   return false
 end

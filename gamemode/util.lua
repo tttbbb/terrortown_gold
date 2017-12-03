@@ -64,7 +64,7 @@ end
 
 function util.GetNextAlivePlayer(ply)
    local alive = util.GetAlivePlayers()
-   
+
    if #alive < 1 then return nil end
 
    local prev = nil
@@ -99,7 +99,7 @@ function clr(color) return color.r, color.g, color.b, color.a; end
 if CLIENT then
    -- Is screenpos on screen?
    function IsOffScreen(scrpos)
-      return scrpos.x < 0 or scrpos.y < 0 or scrpos.x > ScrW() or scrpos.y > ScrH()
+      return not scrpos.visible or scrpos.x < 0 or scrpos.y < 0 or scrpos.x > ScrW() or scrpos.y > ScrH()
    end
 end
 
@@ -142,9 +142,10 @@ function util.StartBleeding(ent, dmg, t)
    if ent:IsPlayer() then
       times = times * 2
       delay = delay / 2
-   end 
+   end
 
-   timer.Create("bleed" .. ent:EntIndex(), delay, times, DoBleed, ent)
+   timer.Create("bleed" .. ent:EntIndex(), delay, times,
+                function() DoBleed(ent) end)
 end
 
 local zapsound = Sound("npc/assassin/ball_zap1.wav")
@@ -152,7 +153,7 @@ function util.EquipmentDestroyed(pos)
    local effect = EffectData()
    effect:SetOrigin(pos)
    util.Effect("cball_explode", effect)
-   WorldSound(zapsound, pos)
+   sound.Play(zapsound, pos)
 end
 
 -- Useful default behaviour for semi-modal DFrames
@@ -172,10 +173,6 @@ function util.SafeRemoveHook(event, name)
    end
 end
 
-function util.UnbridledHateForULX()
-   util.SafeRemoveHook("PlayerSay", "ULXMeCheck")
-end
-
 function util.noop() end
 function util.passthrough(x) return x end
 
@@ -183,7 +180,7 @@ function util.passthrough(x) return x end
 local rand = math.random
 function table.Shuffle(t)
   local n = #t
- 
+
   while n > 2 do
     -- n is now the last pertinent index
     local k = rand(n) -- 1 <= k <= n
@@ -191,7 +188,7 @@ function table.Shuffle(t)
     t[n], t[k] = t[k], t[n]
     n = n - 1
   end
- 
+
   return t
 end
 
@@ -236,7 +233,7 @@ end
 -- Returns copy of table with only specific keys copied
 function table.CopyKeys(tbl, keys)
    if not (tbl and keys) then return end
-   
+
    local out = {}
    local val = nil
    for _, k in pairs(keys) do
@@ -275,10 +272,8 @@ function math.ExponentialDecay(halflife, dt)
    return exp((-0.69314718 / halflife) * dt)
 end
 
-Warning = ErrorNoHalt
-
 function Dev(level, ...)
-   if server_settings and server_settings.Int("developer", 0) >= level then
+   if cvars and cvars.Number("developer", 0) >= level then
       Msg("[TTT dev]")
       -- table.concat does not tostring, derp
 
@@ -296,26 +291,33 @@ function IsPlayer(ent)
 end
 
 function IsRagdoll(ent)
-   return ent and ent.Classname == "prop_ragdoll"
+   return ent and ent:IsValid() and ent:GetClass() == "prop_ragdoll"
+end
+
+local band = bit.band
+function util.BitSet(val, bit)
+   return band(val, bit) == bit
 end
 
 if CLIENT then
    local healthcolors = {
-      healthy = Color(0,255,0,255),
-      hurt    = Color(170,230,10,255),
-      wounded = Color(230,215,10,255),
-      badwound= Color(255,140,0,255),
-      death   = Color(255,0,0,255)
+      healthy = Color(0, 255, 0, 255),
+      hurt    = Color(170, 230, 10, 255),
+      wounded = Color(230, 215, 10, 255),
+      badwound= Color(255, 140, 0, 255),
+      death   = Color(255, 0, 0, 255)
    };
 
-   function util.HealthToString(health)
-      if health > 90 then
+   function util.HealthToString(health, maxhealth)
+      maxhealth = maxhealth or 100
+
+      if health > maxhealth * 0.9 then
          return "hp_healthy", healthcolors.healthy
-      elseif health > 70 then
+      elseif health > maxhealth * 0.7 then
          return "hp_hurt", healthcolors.hurt
-      elseif health > 45 then
+      elseif health > maxhealth * 0.45 then
          return "hp_wounded", healthcolors.wounded
-      elseif health > 20 then
+      elseif health > maxhealth * 0.2 then
          return "hp_badwnd", healthcolors.badwound
       else
          return "hp_death", healthcolors.death
@@ -323,24 +325,48 @@ if CLIENT then
    end
 
    local karmacolors = {
-      max  = Color(255,255,255,255),
-      high = Color(255,240,135,255),
-      med  = Color(245,220,60,255),
-      low  = Color(255,180,0,255),
-      min  = Color(255,130,0,255),
+      max  = Color(255, 255, 255, 255),
+      high = Color(255, 240, 135, 255),
+      med  = Color(245, 220, 60, 255),
+      low  = Color(255, 180, 0, 255),
+      min  = Color(255, 130, 0, 255),
    };
 
    function util.KarmaToString(karma)
-      if karma > 890 then
+      local maxkarma = GetGlobalInt("ttt_karma_max", 1000)
+
+      if karma > maxkarma * 0.89 then
          return "karma_max", karmacolors.max
-      elseif karma > 800 then
+      elseif karma > maxkarma * 0.8 then
          return "karma_high", karmacolors.high
-      elseif karma > 650 then
+      elseif karma > maxkarma * 0.65 then
          return "karma_med", karmacolors.med
-      elseif karma > 500 then
+      elseif karma > maxkarma * 0.5 then
          return "karma_low", karmacolors.low
       else
          return "karma_min", karmacolors.min
-      end   
+      end
    end
+
+   function util.IncludeClientFile(file)
+      include(file)
+   end
+else
+   function util.IncludeClientFile(file)
+      AddCSLuaFile(file)
+   end
+end
+
+-- Like string.FormatTime but simpler (and working), always a string, no hour
+-- support
+function util.SimpleTime(seconds, fmt)
+	if not seconds then seconds = 0 end
+
+    local ms = (seconds - math.floor(seconds)) * 100
+    seconds = math.floor(seconds)
+    local s = seconds % 60
+    seconds = (seconds - s) / 60
+    local m = seconds % 60
+
+    return string.format(fmt, m, s, ms)
 end

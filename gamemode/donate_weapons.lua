@@ -1,8 +1,8 @@
-//aDonatorWeapon = {}
-//aDonatorWeapon["STEAM_0:1:19291688"] = "weapon_ttt_donator_grapple"; // Natrox
-//aDonatorWeapon["STEAM_0:0:6938520"] = "weapon_ttt_donator_combinerifle"; // Onion
+aDonatorWeapon = {}
+aDonatorWeapon["STEAM_0:1:19291688"] = "weapon_ttt_donator_grapple"; // Natrox
+aDonatorWeapon["STEAM_0:0:6938520"] = "weapon_ttt_donator_combinerifle"; // Onion
 //aDonatorWeapon["STEAM_0:0:13767019"] = "weapon_ttt_donator_jihad"; // jim
-//aDonatorWeapon["STEAM_0:0:1181318"] = "weapon_ttt_donator_jihad"; // rilez
+aDonatorWeapon["STEAM_0:0:1181318"] = "weapon_ttt_donator_jihad"; // rilez
 
 function bIsWeaponDonator(ply)
 	if (!IsValid(ply)) then return false end

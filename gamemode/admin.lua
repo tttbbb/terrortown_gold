@@ -25,7 +25,9 @@ local function TraitorSort(a,b)
 end
 
 function PrintTraitors(ply)
-   if not IsValid(ply) or IsTTTAdmin(ply) then
+   if not IsValid(ply) or ply:IsSuperAdmin() then
+      ServerLog(Format("%s used ttt_print_traitors\n", IsValid(ply) and ply:Nick() or "console"))
+
       local pr = GetPrintFn(ply)
 
       local ps = player.GetAll()
@@ -58,7 +60,7 @@ function PrintReport(ply)
 
       for k, e in pairs(SCORE.Events) do
          if e.id == EVENT_KILL then
-            if e.att.uid == -1 then
+            if e.att.sid == -1 then
                pr("<something> killed " .. e.vic.ni .. (e.vic.tr and " [TRAITOR]" or " [inno.]"))
             else
                pr(e.att.ni .. (e.att.tr and " [TRAITOR]" or " [inno.]") .. " killed " .. e.vic.ni .. (e.vic.tr and " [TRAITOR]" or " [inno.]"))
@@ -84,7 +86,7 @@ local function PrintKarma(ply)
    else
       if IsValid(ply) then
          pr("You do not appear to be RCON or a superadmin!")
-      end      
+      end
    end
 end
 concommand.Add("ttt_print_karma", PrintKarma)
@@ -134,7 +136,7 @@ local function SaveDamageLog()
    else
       for k, txt in ipairs(GAMEMODE.DamageLog) do
          text = text .. txt .. "\n"
-      end      
+      end
    end
 
    local fname = Format("ttt/logs/dmglog_%s_%d.txt",
@@ -147,7 +149,7 @@ hook.Add("TTTEndRound", "ttt_damagelog_save_hook", SaveDamageLog)
 function DamageLog(txt)
    local t = math.max(0, CurTime() - GAMEMODE.RoundStartTime)
 
-   txt = string.FormattedTime(t, "%02i:%02i.%02i - ") .. txt
+   txt = util.SimpleTime(t, "%02i:%02i.%02i - ") .. txt
    ServerLog(txt .. "\n")
 
    if dmglog_console:GetBool() or dmglog_save:GetBool() then
@@ -163,13 +165,15 @@ local function DetectServerPlugin()
       return "ulx"
    elseif evolve and evolve.Ban then
       return "evolve"
+   elseif exsto and exsto.GetPlugin('administration') then
+      return "exsto"
    else
       return "gmod"
    end
 end
 
 local function StandardBan(ply, length, reason)
-   RunConsoleCommand("banid", length, ply:SteamID())
+   RunConsoleCommand("banid", length, ply:UserID())
    ply:Kick(reason)
 end
 
@@ -182,6 +186,13 @@ local ban_functions = {
 
    sm     = function(p, l, r)
                game.ConsoleCommand(Format("sm_ban \"#%s\" %d \"%s\"\n", p:SteamID(), l, r))
+            end,
+
+   exsto  = function(p, l, r)
+               local adm = exsto.GetPlugin('administration')
+               if adm and adm.Ban then
+                  adm:Ban(nil, p, l, r)
+               end
             end,
 
    gmod   = StandardBan

@@ -36,6 +36,11 @@ end
 -- If detective mode, announce when someone's body is found
 local bodyfound = CreateConVar("ttt_announce_body_found", "1")
 
+function GM:TTTCanIdentifyCorpse(ply, corpse, was_traitor)
+   -- return true to allow corpse identification, false to disallow
+   return true
+end
+
 local function IdentifyBody(ply, rag)
    if not ply:IsTerror() then return end
 
@@ -44,11 +49,15 @@ local function IdentifyBody(ply, rag)
       CORPSE.SetFound(rag, true)
       return
    end
+   
+   if not hook.Run("TTTCanIdentifyCorpse", ply, rag, (rag.was_role == ROLE_TRAITOR)) then
+      return
+   end
 
    local finder = ply:Nick()
    local nick = CORPSE.GetPlayerNick(rag, "")
    local traitor = (rag.was_role == ROLE_TRAITOR)
-
+   
    -- Announce body
    if bodyfound:GetBool() and not CORPSE.GetFound(rag, false) then
       local roletext = nil
@@ -69,7 +78,7 @@ local function IdentifyBody(ply, rag)
    -- Register find
    if not CORPSE.GetFound(rag, false) then
       -- will return either false or a valid ply
-      local deadply = player.GetByUniqueID(rag.uqid)
+      local deadply = player.GetBySteamID(rag.sid)
       if deadply then
          deadply:SetNWBool("body_found", true)
 
@@ -77,10 +86,9 @@ local function IdentifyBody(ply, rag)
             -- update innocent's list of traitors
             SendConfirmedTraitors(GetInnocentFilter(false))
          end
-
          SCORE:HandleBodyFound(ply, deadply)
       end
-
+      hook.Call( "TTTBodyFound", GAMEMODE, ply, deadply, rag )
       CORPSE.SetFound(rag, true)
    else
       -- re-set because nwvars are unreliable
@@ -89,9 +97,9 @@ local function IdentifyBody(ply, rag)
    end
 
    -- Handle kill list
-   for k, vicid in pairs(rag.kills) do
+   for k, vicsid in pairs(rag.kills) do
       -- filter out disconnected
-      local vic = player.GetByUniqueID(vicid)
+      local vic = player.GetBySteamID(vicsid)
 
       -- is this an unconfirmed dead?
       if IsValid(vic) and (not vic:GetNWBool("body_found", false)) then
@@ -112,7 +120,7 @@ end
 local function IdentifyCommand(ply, cmd, args)
    if not IsValid(ply) then return end
    if #args != 2 then return end
-   
+
    local eidx = tonumber(args[1])
    local id = tonumber(args[2])
    if (not eidx) or (not id) then return end
@@ -139,7 +147,7 @@ local function CallDetective(ply, cmd, args)
    if not IsValid(ply) then return end
    if #args != 1 then return end
    if not ply:IsActive() then return end
-   
+
    local eidx = tonumber(args[1])
    if not eidx then return end
 
@@ -147,7 +155,9 @@ local function CallDetective(ply, cmd, args)
    if IsValid(rag) and rag:GetPos():Distance(ply:GetPos()) < 128 then
       if CORPSE.GetFound(rag, false) then
          -- show indicator to detectives
-         SendUserMessage("corpse_call", GetDetectiveFilter(true), rag:GetPos())
+         net.Start("TTT_CorpseCall")
+            net.WriteVector(rag:GetPos())
+         net.Send(GetDetectiveFilter(true))
 
          LANG.Msg("body_call", {player = ply:Nick(),
                                 victim = CORPSE.GetPlayerNick(rag, "someone")})
@@ -159,12 +169,30 @@ local function CallDetective(ply, cmd, args)
 end
 concommand.Add("ttt_call_detective", CallDetective)
 
+local function bitsRequired(num)
+   local bits, max = 0, 1
+   while max <= num do
+      bits = bits + 1
+      max = max + max
+   end
+   return bits
+end
+
+function GM:TTTCanSearchCorpse(ply, corpse, is_covert, is_long_range, was_traitor)
+   -- return true to allow corpse search, false to disallow.
+   return true
+end
+
 -- Send a usermessage to client containing search results
 function CORPSE.ShowSearch(ply, rag, covert, long_range)
    if not IsValid(ply) or not IsValid(rag) then return end
 
    if rag:IsOnFire() then
       LANG.Msg(ply, "body_burning")
+      return
+   end
+   
+   if not hook.Run("TTTCanSearchCorpse", ply, rag, covert, long_range, (rag.was_role == ROLE_TRAITOR)) then
       return
    end
 
@@ -179,8 +207,8 @@ function CORPSE.ShowSearch(ply, rag, covert, long_range)
    local words = rag.last_words or ""
    local hshot = rag.was_headshot or false
    local dtime = rag.time or 0
-
-   local owner = player.GetByUniqueID(rag.uqid)
+   
+   local owner = player.GetBySteamID(rag.sid)
    owner = IsValid(owner) and owner:EntIndex() or -1
 
    -- basic sanity check
@@ -217,9 +245,9 @@ function CORPSE.ShowSearch(ply, rag, covert, long_range)
 
    -- build list of people this traitor killed
    local kill_entids = {}
-   for k, vicid in pairs(rag.kills) do
+   for k, vicsid in pairs(rag.kills) do
       -- also send disconnected players as a marker
-      local vic = player.GetByUniqueID(vicid)
+      local vic = player.GetBySteamID(vicsid)
       table.insert(kill_entids, IsValid(vic) and vic:EntIndex() or -1)
    end
 
@@ -230,50 +258,41 @@ function CORPSE.ShowSearch(ply, rag, covert, long_range)
       lastid = IsValid(rag.lastid.ent) and rag.lastid.ent:EntIndex() or -1
    end
 
-   -- If found by detective, send to all, else just the finder
-   local receiver = ply 
-   if ply:IsActiveDetective() then receiver = nil end
-
    -- Send a message with basic info
-   umsg.Start("ragsrch", receiver)
-   umsg.Short(rag:EntIndex()) -- 2 bytes
-   umsg.Short(owner)  -- 2 bytes
-   umsg.String(nick)
-   umsg.Short(eq)     -- 2 bytes
-   umsg.Char(role)    -- 1 byte
-   umsg.Char(c4)      -- 1 byte
-   umsg.Long(dmg)     -- 4 bytes, enum goes high
-   umsg.String(wep)   -- 2 bytes(?)
-   umsg.Bool(hshot)   -- 1 byte
-   umsg.Short(dtime)  -- 2 bytes
-   umsg.Short(stime)  -- 2 bytes
+   net.Start("TTT_RagdollSearch")
+      net.WriteUInt(rag:EntIndex(), 16) -- 16 bits
+      net.WriteUInt(owner, 8) -- 128 max players. ( 8 bits )
+      net.WriteString(nick)
+      net.WriteUInt(eq, 16) -- Equipment ( 16 = max. )
+      net.WriteUInt(role, 2) -- ( 2 bits )
+      net.WriteInt(c4, bitsRequired(C4_WIRE_COUNT) + 1) -- -1 -> 2^bits ( default c4: 4 bits )
+      net.WriteUInt(dmg, 30) -- DMG_BUCKSHOT is the highest. ( 30 bits )
+      net.WriteString(wep)
+      net.WriteBit(hshot) -- ( 1 bit )
+      net.WriteInt(dtime, 16)
+      net.WriteInt(stime, 16)
 
-   umsg.Char(#kill_entids)  -- 1 byte + (2 * #kills) bytes
-   for k, idx in pairs(kill_entids) do
-      -- might be possible to use chars here but this is safer
-      umsg.Short(idx)
-   end
-
-   umsg.Short(lastid)
-
-   -- Who found this, so if we get this from a detective we can decide not to
-   -- show a window
-   umsg.Short(ply:EntIndex())
-
-   -- Will there be a last words umsg coming up?
-   umsg.Bool(words != "") -- 1b
-   umsg.End()
-
-   if words != "" then
-      -- umsgs only have 128 bytes of room, so if last words is really long we
-      -- have to truncate
-      if string.len(words) > 127 then
-         words = string.sub(words, -127)
+      net.WriteUInt(#kill_entids, 8)
+      for k, idx in pairs(kill_entids) do
+         net.WriteUInt(idx, 8) -- first game.MaxPlayers() of entities are for players.
       end
 
-      umsg.Start("ragsrch_lw", ply)
-      umsg.String(words)
-      umsg.End()
+      net.WriteUInt(lastid, 8)
+
+      -- Who found this, so if we get this from a detective we can decide not to
+      -- show a window
+      net.WriteUInt(ply:EntIndex(), 8)
+
+      net.WriteString(words)
+
+      -- 133 + string data + #kill_entids * 8
+      -- 200
+
+   -- If found by detective, send to all, else just the finder
+   if ply:IsActiveDetective() then
+      net.Broadcast()
+   else
+      net.Send(ply)
    end
 end
 
@@ -288,13 +307,18 @@ local function GetKillerSample(victim, attacker, dmg)
 
    if not (IsValid(victim) and IsValid(attacker) and attacker:IsPlayer()) then return end
 
-   local dist = victim:GetPos():Distance(attacker:GetPos())
+   -- NPCs for which a player is damage owner (meaning despite the NPC dealing
+   -- the damage, the attacker is a player) should not cause the player's DNA to
+   -- end up on the corpse.
+   local infl = dmg:GetInflictor()
+   if IsValid(infl) and infl:IsNPC() then return end
 
+   local dist = victim:GetPos():Distance(attacker:GetPos())
    if dist > GetConVarNumber("ttt_killer_dna_range") then return nil end
 
    local sample = {}
    sample.killer = attacker
-   sample.killer_uid = attacker:UniqueID()
+   sample.killer_sid = attacker:SteamID()
    sample.victim = victim
    sample.t      = CurTime() + (-1 * (0.019 * dist)^2 + GetConVarNumber("ttt_killer_dna_basetime"))
 
@@ -335,7 +359,7 @@ local function GetSceneData(victim, attacker, dmginfo)
    end
 
    scene.victim = GetSceneDataFromPlayer(victim)
-   
+
    if IsValid(attacker) and attacker:IsPlayer() then
       scene.killer = GetSceneDataFromPlayer(attacker)
 
@@ -353,148 +377,91 @@ end
 
 local rag_collide = CreateConVar("ttt_ragdoll_collide", "0")
 
-function removeParticle(ent)
-	if IsValid(ent) then 
-		ent:Remove()
-	end
-end
-
 -- Creates client or server ragdoll depending on settings
 function CORPSE.Create(ply, attacker, dmginfo)
-    local wep = util.WeaponFromDamage(dmginfo)
-	
-	if (wep && (wep:GetClass() == "weapon_ttt_drilldo" || wep:GetClass() == "weapon_ttt_drilldo_admin")) then
-		/*gibParticle = ents.Create( "info_particle_system" )
-		gibParticle:SetPos(ply:GetPos())
-		gibParticle:SetKeyValue( "effect_name", "GrubBlood")
-		gibParticle:SetKeyValue( "start_active", "1")
-		gibParticle:Spawn()
-		gibParticle:Activate()
-		timer.Create("killpart" .. gibParticle:EntIndex(), 2, 1, removeParticle, gibParticle)*/
-		local i = 0;
-		while i < 30 do
-			local dildo = ents.Create("prop_physics")
-			if not IsValid(dildo) then return nil end
+   if not IsValid(ply) then return end
 
-			dildo:SetPos(ply:GetPos()+Vector(0,0,32))
-			dildo:SetModel("models/jaanus/dildo.mdl")
-			dildo:SetAngles(ply:GetAngles())
-			dildo:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
+   local rag = ents.Create("prop_ragdoll")
+   if not IsValid(rag) then return nil end
 
-			dildo:Spawn()
-			dildo:Activate()
-			dildo:GetPhysicsObject():SetVelocity(Vector(math.random(-50,55),math.random(-55,55),math.random(10,450)))
-			i = i + 1;
-		end
-		return nil
-	end
-	
-	if (IsValid(ply) && ply:GetModel() == "models/mixerman3d/bowling/bowling_pin.mdl") then
-		
-		SetGlobalInt("jim_diedpins", GetGlobalInt( "jim_diedpins" )+1)
-	
-		local rag = ents.Create("prop_physics")
-		  if not IsValid(rag) then return nil end
-		  
-		  rag:SetPos(ply:GetPos())
-		  rag:SetModel(ply:GetModel())
-		  rag:SetAngles(ply:GetAngles())
+   rag:SetPos(ply:GetPos())
+   rag:SetModel(ply:GetModel())
+   rag:SetSkin(ply:GetSkin())
+   for key, value in pairs(ply:GetBodyGroups()) do
+      rag:SetBodygroup(value.id, ply:GetBodygroup(value.id))	
+   end
+   rag:SetAngles(ply:GetAngles())
+   rag:SetColor(ply:GetColor())
 
-		  rag:SetCollisionGroup(COLLISION_GROUP_WORLD)
-		  rag:Spawn()
-		  rag:Activate()
-		  
-			local entphys = rag:GetPhysicsObject();
-			if entphys:IsValid() then
-				local v = ply:GetVelocity()
-				entphys:SetVelocity(v)
-			end
-			rag:EmitSound(")cunt/pin_hit.wav")
-			rag:EmitSound(")cunt/pin_hit.wav")
-			rag:EmitSound(")cunt/pin_hit.wav")
-		  return
-	end
-	
-   if not GetConVar("ttt_server_ragdolls"):GetBool() then
-      ply:CreateRagdoll()
-      return nil -- signifies we should spectate GetRagdollEntity
-   else
-      if not IsValid(ply) then return end
+   rag:Spawn()
+   rag:Activate()
 
-      local rag = ents.Create("prop_ragdoll")
-      if not IsValid(rag) then return nil end
-	  
-      rag:SetPos(ply:GetPos())
-      rag:SetModel(ply:GetModel())
-      rag:SetAngles(ply:GetAngles())
+   -- nonsolid to players, but can be picked up and shot
+   rag:SetCollisionGroup(rag_collide:GetBool() and COLLISION_GROUP_WEAPON or COLLISION_GROUP_DEBRIS_TRIGGER)
+   timer.Simple( 1, function() if IsValid( rag ) then rag:CollisionRulesChanged() end end )
 
-      rag:Spawn()
-      rag:Activate()
+   -- flag this ragdoll as being a player's
+   rag.player_ragdoll = true
+   rag.sid = ply:SteamID()
 
-      -- nonsolid to players, but can be picked up and shot
-      rag:SetCollisionGroup(rag_collide:GetBool() and COLLISION_GROUP_WEAPON or COLLISION_GROUP_DEBRIS_TRIGGER)
+   rag.uqid = ply:UniqueID() -- backwards compatibility; use rag.sid instead
 
-      -- flag this ragdoll as being a player's
-      rag.player_ragdoll = true
-      rag.uqid = ply:UniqueID()
+   -- network data
+   CORPSE.SetPlayerNick(rag, ply)
+   CORPSE.SetFound(rag, false)
+   CORPSE.SetCredits(rag, ply:GetCredits())
 
-      -- network data
-      CORPSE.SetPlayerNick(rag, ply)
-      CORPSE.SetFound(rag, false)
-      CORPSE.SetCredits(rag, ply:GetCredits())
-
-      -- if someone searches this body they can find info on the victim and the
-      -- death circumstances
-      rag.equipment = ply:GetEquipmentItems()
-      rag.was_role = ply:GetRole()
-      rag.bomb_wire = ply.bomb_wire
+   -- if someone searches this body they can find info on the victim and the
+   -- death circumstances
+   rag.equipment = ply:GetEquipmentItems()
+   rag.was_role = ply:GetRole()
+   rag.bomb_wire = ply.bomb_wire
       rag.dmgtype = dmginfo:GetDamageType()
 
       rag.dmgwep = IsValid(wep) and wep:GetClass() or ""
 
-      rag.was_headshot = ply.was_headshot
-      rag.time = CurTime()
-      rag.kills = table.Copy(ply.kills)
+   rag.was_headshot = (ply.was_headshot and dmginfo:IsBulletDamage())
+   rag.time = CurTime()
+   rag.kills = table.Copy(ply.kills)
 
-      rag.killer_sample = GetKillerSample(ply, attacker, dmginfo)
+   rag.killer_sample = GetKillerSample(ply, attacker, dmginfo)
 
-      -- crime scene data
-      rag.scene = GetSceneData(ply, attacker, dmginfo)
+   -- crime scene data
+   rag.scene = GetSceneData(ply, attacker, dmginfo)
 
 
-      -- position the bones
-      local num = rag:GetPhysicsObjectCount()-1
-      local v = ply:GetVelocity()
+   -- position the bones
+   local num = rag:GetPhysicsObjectCount()-1
+   local v = ply:GetVelocity()
 
-      -- bullets have a lot of force, which feels better when shooting props,
-      -- but makes bodies fly, so dampen that here
-      if dmginfo:IsDamageType(DMG_BULLET) or dmginfo:IsDamageType(DMG_SLASH) then
-         v = v / 5
-      end
-
-      for i=0, num do
-         local bone = rag:GetPhysicsObjectNum(i)
-         if IsValid(bone) then
-            local bp, ba = ply:GetBonePosition(rag:TranslatePhysBoneToBone(i))
-            if bp and ba then
-               bone:SetPos(bp)
-               bone:SetAngle(ba)
-            end
-
-            -- not sure if this will work:
-            bone:SetVelocity(v)
-
-            -- increase their weight
---            bone:SetMass( 40 )
-         end
-      end
-
-      -- create advanced death effects (knives)
-      if ply.effect_fn then
-         -- next frame, after physics is happy for this ragdoll
-         timer.Simple(0, ply.effect_fn, rag)
-      end
-
-      return rag -- we'll be speccing this
+   -- bullets have a lot of force, which feels better when shooting props,
+   -- but makes bodies fly, so dampen that here
+   if dmginfo:IsDamageType(DMG_BULLET) or dmginfo:IsDamageType(DMG_SLASH) then
+      v = v / 5
    end
+
+   for i=0, num do
+      local bone = rag:GetPhysicsObjectNum(i)
+      if IsValid(bone) then
+         local bp, ba = ply:GetBonePosition(rag:TranslatePhysBoneToBone(i))
+         if bp and ba then
+            bone:SetPos(bp)
+            bone:SetAngles(ba)
+         end
+
+         -- not sure if this will work:
+         bone:SetVelocity(v)
+      end
+   end
+
+   -- create advanced death effects (knives)
+   if ply.effect_fn then
+      -- next frame, after physics is happy for this ragdoll
+      local efn = ply.effect_fn
+      timer.Simple(0, function() efn(rag) end)
+   end
+   
+   hook.Run("TTTOnCorpseCreated", rag, ply)
+
+   return rag -- we'll be speccing this
 end

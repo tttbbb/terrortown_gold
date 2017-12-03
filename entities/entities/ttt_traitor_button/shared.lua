@@ -3,15 +3,12 @@
 ENT.Type = "anim"
 ENT.Base = "base_anim"
 
-AccessorFuncNW(ENT, "description", "Description", "", FORCE_STRING)
-AccessorFuncDT(ENT, "delay", "Delay")
-AccessorFuncDT(ENT, "locked", "Locked")
-AccessorFuncDT(ENT, "nextuse", "NextUseTime")
-
 function ENT:SetupDataTables()
-   self:DTVar("Float", 0, "delay")
-   self:DTVar("Float", 1, "nextuse")
-   self:DTVar("Bool", 0, "locked")
+   self:NetworkVar("Float", 0, "Delay")
+   self:NetworkVar("Float", 1, "NextUseTime")
+   self:NetworkVar("Bool", 0, "Locked")
+   self:NetworkVar("String", 0, "Description")
+   self:NetworkVar("Int", 0, "UsableRange", {KeyName = "UsableRange"})
 end
 
 function ENT:IsUsable()

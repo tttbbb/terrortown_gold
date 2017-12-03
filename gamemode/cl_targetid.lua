@@ -26,14 +26,11 @@ end
 
 ---- "T" indicator above traitors
 
-local indicator_mat = Material("VGUI/ttt/sprite_traitor")
+local indicator_mat = Material("vgui/ttt/sprite_traitor")
 local indicator_col = Color(255, 255, 255, 130)
 
 local client, plys, ply, pos, dir, tgt
 local GetPlayers = player.GetAll
-
-local scale_increase = Vector(1.05, 1.05, 1.05)
-local scale_normal = Vector(1,1,1)
 
 local propspec_outline = Material("models/props_combine/portalball001_sheet")
 
@@ -66,20 +63,17 @@ function GM:PostDrawTranslucentRenderables()
       for i=1, #plys do
          ply = plys[i]
          tgt = ply:GetObserverTarget()
-         if IsValid(tgt) and tgt:GetNWEntity("spec_owner", nil) == ply && !IsTTTAdmin(ply) then
-            SetMaterialOverride(propspec_outline)
+         if IsValid(tgt) and tgt:GetNWEntity("spec_owner", nil) == ply then
+            render.MaterialOverride(propspec_outline)
             render.SuppressEngineLighting(true)
             render.SetColorModulation(1, 0.5, 0)
 
-            tgt:SetModelScale(scale_increase)
+            tgt:SetModelScale(1.05, 0)
             tgt:DrawModel()
 
             render.SetColorModulation(1, 1, 1)
             render.SuppressEngineLighting(false)
-            SetMaterialOverride(nil)
-
-            tgt:SetModelScale(scale_normal)
-            tgt:DrawModel()
+            render.MaterialOverride(nil)
          end
       end
 
@@ -111,7 +105,7 @@ local function DrawPropSpecLabels(client)
             scrpos = nil
          end
       else
-         local _, healthcolor = util.HealthToString(ply:Health())
+         local _, healthcolor = util.HealthToString(ply:Health(), ply:GetMaxHealth())
          surface.SetTextColor(clr(healthcolor))
 
          scrpos = ply:EyePos()
@@ -133,11 +127,13 @@ end
 
 ---- Crosshair affairs
 
-surface.CreateFont("TargetID", 16, 1000, true, false, "TargetIDSmall2")
+surface.CreateFont("TargetIDSmall2", {font = "TargetID",
+                                      size = 16,
+                                      weight = 1000})
 
 local minimalist = CreateConVar("ttt_minimal_targetid", "0", FCVAR_ARCHIVE)
 
-local magnifier = surface.GetTextureID("gui/silkicons/magnifier")
+local magnifier_mat = Material("icon16/magnifier.png")
 local ring_tex = surface.GetTextureID("effects/select_ring")
 
 local rag_color = Color(200,200,200,255)
@@ -149,7 +145,9 @@ function GM:HUDDrawTargetID()
 
    local L = GetLang()
 
-   DrawPropSpecLabels(client)
+   if hook.Call( "HUDShouldDraw", GAMEMODE, "TTTPropSpec" ) then
+      DrawPropSpecLabels(client)
+   end
 
    local trace = client:GetEyeTrace(MASK_SHOT)
    local ent = trace.Entity
@@ -192,16 +190,17 @@ function GM:HUDDrawTargetID()
          client.last_id = ent
       end
 
+      local _ -- Stop global clutter
       -- in minimalist targetID, colour nick with health level
       if minimal then
-         _, color = util.HealthToString(ent:Health())
+         _, color = util.HealthToString(ent:Health(), ent:GetMaxHealth())
       end
 
-      if client:IsTraitor() and GAMEMODE.round_state == ROUND_ACTIVE then
+      if client:IsTraitor() and GetRoundState() == ROUND_ACTIVE then
          target_traitor = ent:IsTraitor()
       end
 
-      target_detective = ent:IsDetective()
+      target_detective = GetRoundState() > ROUND_PREP and ent:IsDetective() or false
 
    elseif cls == "prop_ragdoll" then
       -- only show this if the ragdoll has a nick, else it could be a mattress
@@ -254,9 +253,9 @@ function GM:HUDDrawTargetID()
       if ent.search_result and client:IsDetective() then
          -- if I am detective and I know a search result for this corpse, then I
          -- have searched it or another detective has
-         surface.SetTexture(magnifier)
+         surface.SetMaterial(magnifier_mat)
          surface.SetDrawColor(200, 200, 255, 255)
-         surface.DrawTexturedRect(x + w + 5, y + 4, 16, 16)
+         surface.DrawTexturedRect(x + w + 5, y, 16, 16)
       end
 
       y = y + h + 4
@@ -269,7 +268,7 @@ function GM:HUDDrawTargetID()
    -- Draw subtitle: health or type
    local clr = rag_color
    if ent:IsPlayer() then
-      text, clr = util.HealthToString(ent:Health())
+      text, clr = util.HealthToString(ent:Health(), ent:GetMaxHealth())
 
       -- HealthToString returns a string id, need to look it up
       text = L[text]

@@ -7,44 +7,19 @@ local player = player
 local timer = timer
 local pairs = pairs
 
-CreateConVar("ttt_server_ragdolls", "1", FCVAR_CHEAT)
 CreateConVar("ttt_bots_are_spectators", "0", FCVAR_ARCHIVE)
 CreateConVar("ttt_dyingshot", "0")
 
 CreateConVar("ttt_killer_dna_range", "550")
 CreateConVar("ttt_killer_dna_basetime", "100")
 
--- The team the player spawns on depends on the round state
-local function SelectTeam()
-   if GetRoundState() == ROUND_PREP then
-      return TEAM_TERROR
-   else
-      return TEAM_SPEC
-   end
-end
-
 -- First spawn on the server
 function GM:PlayerInitialSpawn( ply )
-   ply.has_spawned = false
-	ply.charge = 100;
-	ply.cancharge = true;
-	ply.charging = false;
-   ply:SetTeam(SelectTeam())
+   if not GAMEMODE.cvar_init then
+      GAMEMODE:InitCvars()
+   end
 
-   -- Change some gmod defaults
-   ply:SetCanZoom(false)
-   ply:SetJumpPower(160)
-   ply:SetSpeed(false)
-   ply:SetCrouchedWalkSpeed(0.3)
-
-   -- Always spawn innocent initially, traitor will be selected later
-   ply:ResetStatus()
-
-   -- Start off with clean, full karma (unless it can and should be loaded)
-   ply:InitKarma()
-
-   -- We never have weapons here, but this inits our equipment state
-   ply:StripAll()
+   ply:InitialSpawn()
 
    local rstate = GetRoundState() or ROUND_WAIT
    -- We should update the traitor list, if we are not about to send it
@@ -66,8 +41,6 @@ function GM:PlayerInitialSpawn( ply )
       ply:SetTeam(TEAM_SPEC)
       ply:SetForceSpec(true)
    end
-
-   GAMEMODE:CheckPlayerReconnected(ply)
 end
 
 function GM:NetworkIDValidated( name, steamid )
@@ -78,10 +51,6 @@ function GM:NetworkIDValidated( name, steamid )
          return
       end
    end
-end
-
-function GM:PlayerReconnected(ply)
-   -- karma loading used to happen here, now in ply:InitKarma
 end
 
 function GM:PlayerSpawn(ply)
@@ -100,29 +69,36 @@ function GM:PlayerSpawn(ply)
    ply.has_spawned = true
 
    -- let the client do things on spawn
-   SendUserMessage("plyspawned", ply, ply:IsSpec())
+   net.Start("TTT_PlayerSpawned")
+      net.WriteBit(ply:IsSpec())
+   net.Send(ply)
 
    if ply:IsSpec() then
       ply:StripAll()
       ply:Spectate(OBS_MODE_ROAMING)
       return
    end
-   
-   ply:SetNWBool("jim_pony",false);
-   ply:SetNWBool("jim_barrel",false);
 
    ply:UnSpectate()
 
    -- ye olde hooks
    hook.Call("PlayerLoadout", GAMEMODE, ply)
    hook.Call("PlayerSetModel", GAMEMODE, ply)
-   
-   ply.IsPin = false
-   
-	ply:SetNWBool("jim_ispin",false)
-	ply:DrawWorldModel(true)
+   hook.Call("TTTPlayerSetColor", GAMEMODE, ply)
+
+   ply:SetupHands()
 
    SCORE:HandleSpawn(ply)
+end
+
+function GM:PlayerSetHandsModel( pl, ent )
+   local simplemodel = player_manager.TranslateToPlayerModelName(pl:GetModel())
+   local info = player_manager.TranslatePlayerHands(simplemodel)
+   if info then
+      ent:SetModel(info.model)
+      ent:SetSkin(info.skin)
+      ent:SetBodyGroups(info.body)
+   end
 end
 
 function GM:IsSpawnpointSuitable(ply, spwn, force, rigged)
@@ -251,7 +227,7 @@ function GM:PlayerSelectSpawn(ply)
                rig_spwn:SetPos(rig)
                rig_spwn:Spawn()
 
-               ErrorNoHalt("WARNING: Map has too few spawn points, using a rigged spawn for ".. tostring(ply) .. "\n")
+               ErrorNoHalt("TTT WARNING: Map has too few spawn points, using a rigged spawn for ".. tostring(ply) .. "\n")
 
                self.HaveRiggedSpawn = true
                return rig_spwn
@@ -276,7 +252,23 @@ function GM:PlayerSetModel(ply)
    mdl = donationGetCustomModel(ply,mdl)
    util.PrecacheModel(mdl)
    ply:SetModel(mdl)
+
+   -- Always clear color state, may later be changed in TTTPlayerSetColor
+   ply:SetColor(COLOR_WHITE)
 end
+
+
+function GM:TTTPlayerSetColor(ply)
+   local clr = COLOR_WHITE
+   if GAMEMODE.playercolor then
+      -- If this player has a colorable model, always use the same color as all
+      -- other colorable players, so color will never be the factor that lets
+      -- you tell players apart.
+      clr = GAMEMODE.playercolor
+   end
+   ply:SetPlayerColor( Vector( clr.r/255.0, clr.g/255.0, clr.b/255.0 ) )
+end
+
 
 -- Only active players can use kill cmd
 function GM:CanPlayerSuicide(ply)
@@ -301,42 +293,31 @@ function GM:PlayerSwitchFlashlight(ply, on)
 end
 
 function GM:PlayerSpray(ply)
+   if not IsValid(ply) or not ply:IsTerror() then
+      return true -- block
+   end
 end
 
 function GM:PlayerUse(ply, ent)
    return ply:IsTerror()
 end
 
-function WheelHook( ply, handler, id, encoded, decoded )
-	local wasUp = !decoded[1]
-	if ply.propspec && (IsTTTAdmin(ply) || GetConVar("jim_chaosmode"):GetInt() == 1) then
-		return PROPSPEC_A.Scroll(ply,wasUp)
-    end
-end
-datastream.Hook( "WheelHook", WheelHook );
-
 function GM:KeyPress(ply, key)
    if not IsValid(ply) then return end
 
    -- Spectator keys
    if ply:IsSpec() and not ply:GetRagdollSpec() then
-			
+
       if ply.propspec then
-		 if (IsTTTAdmin(ply) || GetConVar("jim_chaosmode"):GetInt() == 1) then
-			return PROPSPEC_A.Key(ply, key)
-		 else
-			return PROPSPEC.Key(ply, key)
-		 end
+         return PROPSPEC.Key(ply, key)
       end
 
-	  if (ply:GetActiveWeapon() == NULL) then
       ply:ResetViewRoll()
-	  end
 
       if key == IN_ATTACK then
-		if (ply:GetActiveWeapon() != NULL) then return end
          -- snap to random guy
          ply:Spectate(OBS_MODE_ROAMING)
+         ply:SetEyeAngles(angle_zero) -- After exiting propspec, this could be set to awkward values
          ply:SpectateEntity(nil)
 
          local alive = util.GetAlivePlayers()
@@ -346,6 +327,7 @@ function GM:KeyPress(ply, key)
          local target = table.Random(alive)
          if IsValid(target) then
             ply:SetPos(target:EyePos())
+            ply:SetEyeAngles(target:EyeAngles())
          end
       elseif key == IN_ATTACK2 then
 		if (ply:GetActiveWeapon() != NULL) then return end
@@ -434,9 +416,9 @@ end
 local function SpecUseKey(ply, cmd, arg)
    if IsValid(ply) and ply:IsSpec() then
       -- longer range than normal use
-      local tr = util.QuickTrace(ply:GetShootPos(), ply:GetAimVector() * 256, ply)
+      local tr = util.QuickTrace(ply:GetShootPos(), ply:GetAimVector() * 128, ply)
       if tr.Hit and IsValid(tr.Entity) then
-         if tr.Entity.player_ragdoll && !IsTTTAdmin(ply) then
+         if tr.Entity.player_ragdoll then
             if not ply:KeyDown(IN_WALK) then
                CORPSE.ShowSearch(ply, tr.Entity)
             else
@@ -499,9 +481,6 @@ function GM:PlayerDisconnected(ply)
    if KARMA.IsEnabled() then
       KARMA.Remember(ply)
    end
-
-   -- let fretta maintain disconnected player table
-   self.BaseClass:PlayerDisconnected(ply)
 end
 
 ---- Death affairs
@@ -548,7 +527,7 @@ local deathsounds = {
 local function PlayDeathSound(victim)
    if not IsValid(victim) then return end
 
-   WorldSound(table.Random(deathsounds), victim:GetShootPos(), 90, 100)
+   sound.Play(table.Random(deathsounds), victim:GetShootPos(), 90, 100)
 end
 
 -- See if we should award credits now
@@ -573,6 +552,8 @@ local function CheckCreditAward(victim, attacker)
    if (not victim:IsTraitor()) and (not GAMEMODE.AwardedCredits or GetConVar("ttt_credits_award_repeat"):GetBool()) then
       local inno_alive = 0
       local inno_dead = 0
+      local inno_total = 0
+      
       for _, ply in pairs(player.GetAll()) do
          if not ply:GetTraitor() then
             if ply:IsTerror() then
@@ -723,7 +704,7 @@ function GM:PlayerDeath( victim, infl, attacker)
 
    victim:Extinguish()
 
-   SendUserMessage("plydied", victim)
+   net.Start("TTT_PlayerDied") net.Send(victim)
 
    if HasteMode() and GetRoundState() == ROUND_ACTIVE then
       IncRoundEnd(GetConVar("ttt_haste_minutes_per_death"):GetFloat() * 60)
@@ -757,7 +738,7 @@ function GM:SpectatorThink(ply)
          if spec_spawns and #spec_spawns > 0 then
             local spawn = table.Random(spec_spawns)
             ply:SetPos(spawn:GetPos())
-            ply:SnapEyeAngles(spawn:GetAngles())
+            ply:SetEyeAngles(spawn:GetAngles())
          end
       elseif (m == OBS_MODE_IN_EYE and clicked and elapsed > to_switch) or elapsed > to_chase then
          -- start following ragdoll
@@ -792,14 +773,6 @@ end
 GM.PlayerDeathThink = GM.SpectatorThink
 
 function GM:PlayerTraceAttack(ply, dmginfo, dir, trace)
-   --if SERVER then
-   --   GAMEMODE:ScalePlayerDamage(ply, trace.HitGroup, dmginfo)
-   --end
-
-   -- derp. ScalePlayerDamage is basically broken, called twice and ignored
-   -- etc., so we work around that by manually scaling damage in
-   -- entitytakedamage
-
    if IsValid(ply.hat) and trace.HitGroup == HITGROUP_HEAD then
       ply.hat:Drop(dir)
    end
@@ -809,21 +782,13 @@ function GM:PlayerTraceAttack(ply, dmginfo, dir, trace)
    return false
 end
 
-function GM:ScalePlayerDamage(ply, hitgroup, dmginfo, real)
-   -- There's a phantom call to this function made by gmod, ignore it.
-   if not real then return end
-
-   -- For unknown reasons, damage is doubled by gmod. Compensate for that here.
-   dmginfo:SetDamage(dmginfo:GetBaseDamage() / 2)
-
-
-   ply.was_headshot = false
-
+function GM:ScalePlayerDamage(ply, hitgroup, dmginfo)
    if dmginfo:IsBulletDamage() and ply:HasEquipmentItem(EQUIP_ARMOR) then
       -- Body armor nets you a damage reduction.
       dmginfo:ScaleDamage(0.7)
    end
 
+   ply.was_headshot = false
    -- actual damage scaling
    if hitgroup == HITGROUP_HEAD then
       -- headshot if it was dealt by a bullet
@@ -857,7 +822,7 @@ end
 -- rather high drop already. Hence we do our own fall damage handling in
 -- OnPlayerHitGround.
 function GM:GetFallDamage(ply, speed)
-   return 1
+   return 0
 end
 
 local fallsounds = {
@@ -924,8 +889,8 @@ function GM:OnPlayerHitGround(ply, in_water, on_floater, speed)
    if math.floor(damage) > 0 then
       local dmg = DamageInfo()
       dmg:SetDamageType(DMG_FALL)
-      dmg:SetAttacker(GetWorldEntity())
-      dmg:SetInflictor(GetWorldEntity())
+      dmg:SetAttacker(game.GetWorld())
+      dmg:SetInflictor(game.GetWorld())
       dmg:SetDamageForce(Vector(0,0,1))
       dmg:SetDamage(damage)
 
@@ -933,7 +898,7 @@ function GM:OnPlayerHitGround(ply, in_water, on_floater, speed)
 
       -- play CS:S fall sound if we got somewhat significant damage
       if damage > 5 then
-         WorldSound(table.Random(fallsounds), ply:GetShootPos(), 55 + math.Clamp(damage, 0, 50), 100)
+         sound.Play(table.Random(fallsounds), ply:GetShootPos(), 55 + math.Clamp(damage, 0, 50), 100)
       end
    end
 end
@@ -946,8 +911,9 @@ function GM:AllowPVP()
 end
 
 -- No damage during prep, etc
-function GM:EntityTakeDamage(ent, infl, att, amount, dmginfo)
+function GM:EntityTakeDamage(ent, dmginfo)
    if not IsValid(ent) then return end
+   local att = dmginfo:GetAttacker()
 
    if not GAMEMODE:AllowPVP() then
       -- if player vs player damage, or if damage versus a prop, then zero
@@ -957,7 +923,7 @@ function GM:EntityTakeDamage(ent, infl, att, amount, dmginfo)
       end
    elseif ent:IsPlayer() then
 
-      GAMEMODE:PlayerTakeDamage(ent, infl, att, amount, dmginfo)
+      GAMEMODE:PlayerTakeDamage(ent, dmginfo:GetInflictor(), att, dmginfo:GetDamage(), dmginfo)
 
    elseif ent:IsExplosive() then
       -- When a barrel hits a player, that player damages the barrel because
@@ -997,6 +963,8 @@ function GM:PlayerTakeDamage(ent, infl, att, amount, dmginfo)
          -- barrel bangs can hurt us even if we threw them, but that's our fault
       elseif hurter and ent == hurter:GetPhysicsAttacker() and dmginfo:IsDamageType(DMG_BLAST) then
          owner = ent
+      elseif hurter and hurter:IsVehicle() and IsValid(hurter:GetDriver()) then
+         owner = hurter:GetDriver()
       end
 
 
@@ -1059,10 +1027,6 @@ function GM:PlayerTakeDamage(ent, infl, att, amount, dmginfo)
       dmginfo:SetAttacker(att)
    end
 
-   -- Perform damage scaling
-   GAMEMODE:ScalePlayerDamage(ent, ent:LastHitGroup() or HITGROUP_GENERIC, dmginfo, true)
-
-
    -- scale phys damage caused by props
    if dmginfo:IsDamageType(DMG_CRUSH) and IsValid(att) then
 
@@ -1094,7 +1058,7 @@ function GM:PlayerTakeDamage(ent, infl, att, amount, dmginfo)
 
    -- try to work out if this was push-induced leech-water damage (common on
    -- some popular maps like dm_island17)
-   if ent.was_pushed and ent == att and dmginfo:GetDamageType() == DMG_GENERIC and (util.PointContents(dmginfo:GetDamagePosition()) & CONTENTS_WATER == CONTENTS_WATER) then
+   if ent.was_pushed and ent == att and dmginfo:GetDamageType() == DMG_GENERIC and util.BitSet(util.PointContents(dmginfo:GetDamagePosition()), CONTENTS_WATER) then
       local t = math.max(ent.was_pushed.t or 0, ent.was_pushed.hurt or 0)
       if t > CurTime() - 3 then
          dmginfo:SetAttacker(ent.was_pushed.att)
@@ -1171,8 +1135,8 @@ function GM:Tick()
                   local dmginfo = DamageInfo()
                   dmginfo:SetDamage(15)
                   dmginfo:SetDamageType(DMG_DROWN)
-                  dmginfo:SetAttacker(GetWorldEntity())
-                  dmginfo:SetInflictor(GetWorldEntity())
+                  dmginfo:SetAttacker(game.GetWorld())
+                  dmginfo:SetInflictor(game.GetWorld())
                   dmginfo:SetDamageForce(Vector(0,0,1))
 
                   ply:TakeDamageInfo(dmginfo)
@@ -1186,14 +1150,6 @@ function GM:Tick()
             end
          else
             ply.drowning = nil
-         end
-
-         -- Slow down ironsighters
-         local wep = ply:GetActiveWeapon()
-         if IsValid(wep) and wep:GetIronsights() then
-            ply:SetSpeed(true)
-         else
-            ply:SetSpeed(false)
          end
 
          -- Run DNA Scanner think also when it is not deployed
@@ -1245,3 +1201,8 @@ function GM:AllowPlayerPickup(ply, obj)
    return false
 end
 
+function GM:PlayerShouldTaunt(ply, actid)
+   -- Disable taunts, we don't have a system for them (camera freezing etc).
+   -- Mods/plugins that add such a system should override this.
+   return false
+end
