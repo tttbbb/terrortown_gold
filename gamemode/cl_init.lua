@@ -1,3 +1,4 @@
+include("datastream.lua")
 include("shared.lua")
 
 -- Define GM12 fonts for compatibility

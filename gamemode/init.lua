@@ -1,5 +1,5 @@
 ---- Trouble in Terrorist Town
-
+AddCSLuaFile("datastream.lua")
 AddCSLuaFile("cl_init.lua")
 AddCSLuaFile("shared.lua")
 AddCSLuaFile("cl_jimhud.lua")
@@ -40,6 +40,7 @@ AddCSLuaFile("vgui/sb_row.lua")
 AddCSLuaFile("vgui/sb_team.lua")
 AddCSLuaFile("vgui/sb_info.lua")
 
+include("datastream.lua")
 include("shared.lua")
 
 include("karma.lua")
@@ -694,7 +695,7 @@ function BeginRound()
    hook.Call("TTTBeginRound")
 
    ents.TTT.TriggerRoundStateOutputs(ROUND_BEGIN)
-   
+
    SetGlobalInt("jim_currentpins", 0)
 end
 
