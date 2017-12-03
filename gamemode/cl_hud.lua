@@ -12,10 +12,15 @@ local GetLang = LANG.GetUnsafeLanguageTable
 local interp = string.Interp
 
 -- Fonts
-surface.CreateFont("Trebuchet24", 28, 1000, true, false, "TraitorState")
-surface.CreateFont("Trebuchet24", 24, 800, true, false, "TimeLeft")
-surface.CreateFont("Trebuchet24", 24, 750, true, false, "HealthAmmo")
-
+surface.CreateFont("TraitorState", {font = "Trebuchet24",
+                                    size = 28,
+                                    weight = 1000})
+surface.CreateFont("TimeLeft",     {font = "Trebuchet24",
+                                    size = 24,
+                                    weight = 800})
+surface.CreateFont("HealthAmmo",   {font = "Trebuchet24",
+                                    size = 24,
+                                    weight = 750})
 -- Color presets
 local bg_colors = {
    background_main = Color(0, 0, 10, 200),
@@ -90,9 +95,9 @@ local function GetAmmo(ply)
    local weap = ply:GetActiveWeapon()
    if not weap or not ply:Alive() then return -1 end
 
-   local ammo_inv = weap:Ammo1()
-   local ammo_clip = weap:Clip1()
-   local ammo_max = weap.Primary.ClipSize
+   local ammo_inv = weap:Ammo1() or 0
+   local ammo_clip = weap:Clip1() or 0
+   local ammo_max = weap.Primary.ClipSize or 0
 
    return ammo_clip, ammo_max, ammo_inv
 end
@@ -189,7 +194,7 @@ local function SpecHUDPaint(client)
    ShadowedText(text, "TraitorState", x + margin, round_y, COLOR_WHITE)
 
    -- Draw round/prep/post time remaining
-   local text = string.FormattedTime(math.max(0, GetGlobalFloat("ttt_round_end", 0) - CurTime()), "%02i:%02i")
+   local text = util.SimpleTime(math.max(0, GetGlobalFloat("ttt_round_end", 0) - CurTime()), "%02i:%02i")
    ShadowedText(text, "TimeLeft", time_x + margin, time_y, COLOR_WHITE)
 
    local tgt = client:GetObserverTarget()
@@ -228,7 +233,7 @@ local function InfoPaint(client)
    ShadowedText(tostring(health), "HealthAmmo", bar_width, health_y, COLOR_WHITE, TEXT_ALIGN_RIGHT, TEXT_ALIGN_RIGHT)
 
    if ttt_health_label:GetBool() then
-      local health_status = util.HealthToString(health)
+      local health_status = util.HealthToString(health, client:GetMaxHealth())
       draw.SimpleText(L[health_status], "TabLarge", x + margin*2, health_y + bar_height/2, COLOR_WHITE, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
    end
 
@@ -277,14 +282,14 @@ local function InfoPaint(client)
          if (not is_traitor) or (math.ceil(CurTime()) % 7 <= 2) then
             -- innocent or blinking "overtime"
             text = L.overtime
-            font = "Trebuchet19"
+            font = "Trebuchet18"
 
             -- need to hack the position a little because of the font switch
             ry = ry + 5
             rx = rx - 3
          else
             -- traitor and not blinking "overtime" right now, so standard endtime display
-            text  = string.FormattedTime(math.max(0, endtime), "%02i:%02i")
+            text  = util.SimpleTime(math.max(0, endtime), "%02i:%02i")
             color = COLOR_RED
          end
       else
@@ -294,11 +299,11 @@ local function InfoPaint(client)
             t = endtime
             color = COLOR_RED
          end
-         text = string.FormattedTime(math.max(0, t), "%02i:%02i")
+         text = util.SimpleTime(math.max(0, t), "%02i:%02i")
       end
    else
       -- bog standard time when haste mode is off (or round not active)
-      text = string.FormattedTime(math.max(0, endtime), "%02i:%02i")
+      text = util.SimpleTime(math.max(0, endtime), "%02i:%02i")
    end
 
    ShadowedText(text, font, rx, ry, color)
@@ -313,37 +318,57 @@ end
 function GM:HUDPaint()
    local client = LocalPlayer()
 
-   GAMEMODE:HUDDrawTargetID()
+   if hook.Call( "HUDShouldDraw", GAMEMODE, "TTTTargetID" ) then
+       hook.Call( "HUDDrawTargetID", GAMEMODE )
+   end
+   
+   if hook.Call( "HUDShouldDraw", GAMEMODE, "TTTMStack" ) then
+       MSTACK:Draw(client)
+   end
 
-   MSTACK:Draw(client)
-	
    if (not client:Alive()) or client:Team() == TEAM_SPEC then
-      SpecHUDPaint(client)
+      if hook.Call( "HUDShouldDraw", GAMEMODE, "TTTSpecHUD" ) then
+          SpecHUDPaint(client)
+      end
 
       return
    end
 
+   if hook.Call( "HUDShouldDraw", GAMEMODE, "TTTRadar" ) then
+       RADAR:Draw(client)
+   end
+   
+   if hook.Call( "HUDShouldDraw", GAMEMODE, "TTTTButton" ) then
+       TBHUD:Draw(client)
+   end
+   
+   if hook.Call( "HUDShouldDraw", GAMEMODE, "TTTWSwitch" ) then
+       WSWITCH:Draw(client)
+   end
 
-   RADAR:Draw(client)
-   TBHUD:Draw(client)
-   WSWITCH:Draw(client)
+   if hook.Call( "HUDShouldDraw", GAMEMODE, "TTTVoice" ) then
+       VOICE.Draw(client)
+   end
+   
+   if hook.Call( "HUDShouldDraw", GAMEMODE, "TTTDisguise" ) then
+       DISGUISE.Draw(client)
+   end
 
-   VOICE.Draw(client)
-   DISGUISE.Draw(client)
-
-   GAMEMODE:HUDDrawPickupHistory()
+   if hook.Call( "HUDShouldDraw", GAMEMODE, "TTTPickupHistory" ) then
+       hook.Call( "HUDDrawPickupHistory", GAMEMODE )
+   end
 
    -- Draw bottom left info panel
-   InfoPaint(client)
+   if hook.Call( "HUDShouldDraw", GAMEMODE, "TTTInfoPanel" ) then
+       InfoPaint(client)
+   end
 end
 
 -- Hide the standard HUD stuff
-local hud = {"CHudHealth", "CHudBattery", "CHudAmmo", "CHudSecondaryAmmo"}
+local hud = {["CHudHealth"] = true, ["CHudBattery"] = true, ["CHudAmmo"] = true, ["CHudSecondaryAmmo"] = true}
 function GM:HUDShouldDraw(name)
-   for k, v in pairs(hud) do
-      if name == v then return false end
-   end
+   if hud[name] then return false end
 
-   return true
+   return self.BaseClass.HUDShouldDraw(self, name)
 end
 

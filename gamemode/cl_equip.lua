@@ -18,16 +18,16 @@ function GetEquipmentForRole(role)
          if v and v.CanBuy then
             local data = v.EquipMenuData or {}
             local base = {
-               id       = v.Classname,
+               id       = WEPS.GetClass(v),
                name     = v.PrintName or "Unnamed",
                limited  = v.LimitedStock,
                kind     = v.Kind or WEAPON_NONE,
                slot     = (v.Slot or 0) + 1,
-               material = v.Icon or "VGUI/ttt/icon_id",
+               material = v.Icon or "vgui/ttt/icon_id",
                -- the below should be specified in EquipMenuData, in which case
                -- these values are overwritten
                type     = "Type not specified",
-               model    = "models/weapons/w_bugbait.mdl", 
+               model    = "models/weapons/w_bugbait.mdl",
                desc     = "No description specified."
             };
 
@@ -69,18 +69,21 @@ local color_bad = Color(220, 60, 60, 255)
 local color_good = Color(0, 200, 0, 255)
 
 -- Creates tabel of labels showing the status of ordering prerequisites
-local function PreqLabels(form)
+local function PreqLabels(parent, x, y)
    local tbl = {}
 
-   tbl.credits = vgui.Create("DLabel", form)
-   tbl.credits:SetToolTip(GetTranslation("equip_help_cost"))
+   tbl.credits = vgui.Create("DLabel", parent)
+   tbl.credits:SetTooltip(GetTranslation("equip_help_cost"))
+   tbl.credits:SetPos(x, y)
    tbl.credits.Check = function(s, sel)
                           local credits = LocalPlayer():GetCredits()
                           return credits > 0, GetPTranslation("equip_cost", {num = credits})
                        end
 
-   tbl.owned = vgui.Create("DLabel", form)
-   tbl.owned:SetToolTip(GetTranslation("equip_help_carry"))
+   tbl.owned = vgui.Create("DLabel", parent)
+   tbl.owned:SetTooltip(GetTranslation("equip_help_carry"))
+   tbl.owned:CopyPos(tbl.credits)
+   tbl.owned:MoveBelow(tbl.credits, y)
    tbl.owned.Check = function(s, sel)
                         if ItemIsWeapon(sel) and (not CanCarryWeapon(sel)) then
                            return false, GetPTranslation("equip_carry_slot", {slot = sel.slot})
@@ -91,8 +94,10 @@ local function PreqLabels(form)
                         end
                      end
 
-   tbl.bought = vgui.Create("DLabel", form)
-   tbl.bought:SetToolTip(GetTranslation("equip_help_stock"))
+   tbl.bought = vgui.Create("DLabel", parent)
+   tbl.bought:SetTooltip(GetTranslation("equip_help_stock"))
+   tbl.bought:CopyPos(tbl.owned)
+   tbl.bought:MoveBelow(tbl.owned, y)
    tbl.bought.Check = function(s, sel)
                          if sel.limited and LocalPlayer():HasBought(tostring(sel.id)) then
                             return false, GetTranslation("equip_stock_deny")
@@ -103,7 +108,6 @@ local function PreqLabels(form)
 
    for k, pnl in pairs(tbl) do
       pnl:SetFont("TabLarge")
-      form:AddItem(pnl)
    end
 
    return function(selected)
@@ -112,6 +116,7 @@ local function PreqLabels(form)
                 local result, text = pnl:Check(selected)
                 pnl:SetTextColor(result and color_good or color_bad)
                 pnl:SetText(text)
+                pnl:SizeToContents()
 
                 allow = allow and result
              end
@@ -134,28 +139,6 @@ function PANEL:SelectPanel(pnl)
 end
 vgui.Register("EquipSelect", PANEL, "DPanelSelect")
 
--- need an OnTabChanged hook in propertysheet
-local PANEL = {}
-
-function PANEL:OnTabChanged(old, new) end
-
-function PANEL:SetActiveTab(new)
-   local old = self.m_pActiveTab
-   if old == new then return end
-   
-   if old then
-      self.animFade:Start( self:GetFadeTime(), { OldTab = old, NewTab = new } )
-   end
-
-   self.m_pActiveTab = new
-
-   self:OnTabChanged(old, new)
-
-   self:InvalidateLayout()
-end
-
-vgui.Register("EquipPropertySheet", PANEL, "DPropertySheet")
-
 
 local SafeTranslate = LANG.TryTranslation
 
@@ -170,17 +153,17 @@ local eqframe = nil
 local function TraitorMenuPopup()
    local ply = LocalPlayer()
    if not IsValid(ply) or not ply:IsActiveSpecial() then
-      return 
+      return
    end
 
    -- Close any existing traitor menu
-   if eqframe and ValidPanel(eqframe) then eqframe:Close() end
+   if eqframe and IsValid(eqframe) then eqframe:Close() end
 
    local credits = ply:GetCredits()
    local can_order = credits > 0
 
    local dframe = vgui.Create("DFrame")
-   local w, h = 500, 350
+   local w, h = 570, 412
    dframe:SetSize(w, h)
    dframe:Center()
    dframe:SetTitle(GetTranslation("equip_title"))
@@ -189,11 +172,19 @@ local function TraitorMenuPopup()
    dframe:SetMouseInputEnabled(true)
    dframe:SetDeleteOnClose(true)
 
-   --dframe.OnKeyCodePressed = util.BasicKeyHandler
-
    local m = 5
 
-   local dsheet = vgui.Create("EquipPropertySheet", dframe)
+   local dsheet = vgui.Create("DPropertySheet", dframe)
+
+   -- Add a callback when switching tabs
+   local oldfunc = dsheet.SetActiveTab
+   dsheet.SetActiveTab = function(self, new)
+      if self.m_pActiveTab != new and self.OnTabChanged then
+         self:OnTabChanged(self.m_pActiveTab, new)
+      end
+      oldfunc(self, new)
+   end
+
    dsheet:SetPos(0,0)
    dsheet:StretchToParent(m,m + 25,m,m)
    local padding = dsheet:GetPadding()
@@ -201,11 +192,11 @@ local function TraitorMenuPopup()
    local dequip = vgui.Create("DPanel", dsheet)
    dequip:SetPaintBackground(false)
    dequip:StretchToParent(padding,padding,padding,padding)
-   
+
    -- Determine if we already have equipment
    local owned_ids = {}
    for _, wep in pairs(ply:GetWeapons()) do
-      if ValidEntity(wep) and wep:IsEquipment() then
+      if IsValid(wep) and wep:IsEquipment() then
          table.insert(owned_ids, wep:GetClass())
       end
    end
@@ -218,7 +209,7 @@ local function TraitorMenuPopup()
    --- Construct icon listing
    local dlist = vgui.Create("EquipSelect", dequip)
    dlist:SetPos(0,0)
-   dlist:SetSize(154, h - 70)
+   dlist:SetSize(216, h - 75)
    dlist:EnableVerticalScrollbar(true)
    dlist:EnableHorizontal(true)
    dlist:SetPadding(4)
@@ -237,7 +228,7 @@ local function TraitorMenuPopup()
             ic = vgui.Create("LayeredIcon", dlist)
 
             local marker = vgui.Create("DImage")
-            marker:SetImage("VGUI/ttt/custom_marker")
+            marker:SetImage("vgui/ttt/custom_marker")
             marker.PerformLayout = function(s)
                                       s:AlignBottom(2)
                                       s:AlignRight(2)
@@ -257,16 +248,16 @@ local function TraitorMenuPopup()
          -- Slot marker icon
          if ItemIsWeapon(item) then
             local slot = vgui.Create("SimpleIconLabelled")
-            slot:SetIcon("VGUI/ttt/slotcap")
+            slot:SetIcon("vgui/ttt/slotcap")
             slot:SetIconColor(color_slot[ply:GetRole()] or COLOR_GREY)
             slot:SetIconSize(16)
 
             slot:SetIconText(item.slot)
 
             slot:SetIconProperties(COLOR_WHITE,
-                                   "UiBold",
+                                   "DefaultBold",
                                    {opacity=220, offset=1},
-                                   {8.5, 7})
+                                   {10, 8})
 
             ic:AddLayer(slot)
             ic:EnableMousePassthrough(slot)
@@ -287,7 +278,7 @@ local function TraitorMenuPopup()
       ic:SetTooltip(tip)
 
       -- If we cannot order this item, darken it
-      if ((not can_order) or 
+      if ((not can_order) or
           -- already owned
           table.HasValue(owned_ids, item.id) or
           (tonumber(item.id) and ply:HasEquipmentItem(tonumber(item.id))) or
@@ -302,89 +293,82 @@ local function TraitorMenuPopup()
       dlist:AddPanel(ic)
    end
 
-   local dlistw = 154
+   local dlistw = 216
 
    local bw, bh = 100, 25
 
-   local dih = h - bh - 25
-   local diw = w - dlistw - m*5
+   local dih = h - bh - m*5
+   local diw = w - dlistw - m*6 - 2
    local dinfobg = vgui.Create("DPanel", dequip)
    dinfobg:SetPaintBackground(false)
    dinfobg:SetSize(diw, dih)
    dinfobg:SetPos(dlistw + m, 0)
 
-   local dinfo = vgui.Create("DForm", dinfobg)
-   dinfo:SetName(GetTranslation("equip_spec_title"))
+   local dinfo = vgui.Create("ColoredBox", dinfobg)
+   dinfo:SetColor(Color(90, 90, 95))
    dinfo:SetPos(0,0)
-   dinfo:SetSize(diw, 140)
-   dinfo:SetPadding(8)
-   dinfo:SetSpacing(5)
-   dinfo:SetAutoSize(false)
-
-   local di_name = vgui.Create("DLabel", dinfo)
-   di_name:SetText(GetTranslation("equip_spec_name"))
-
-   local di_type = vgui.Create("DLabel", dinfo)
-   di_type:SetText(GetTranslation("equip_spec_type"))
-
-   local di_desc = vgui.Create("DLabel", dinfo)
-   di_desc:SetText(GetTranslation("equip_spec_desc"))
+   dinfo:StretchToParent(0, 0, 0, dih - 135)
 
    local dfields = {}
    for _, k in pairs({"name", "type", "desc"}) do
       dfields[k] = vgui.Create("DLabel", dinfo)
-      dfields[k]:SetFont("TabLarge")
-      dfields[k]:SetContentAlignment( 7 )
+      dfields[k]:SetTooltip(GetTranslation("equip_spec_" .. k))
+      dfields[k]:SetPos(m*3, m*2)
    end
-   
-   dinfo:AddItem(di_name, dfields.name)
-   dinfo:AddItem(di_type, dfields.type)
-   dinfo:AddItem(di_desc, dfields.desc)
+
+   dfields.name:SetFont("TabLarge")
+
+   dfields.type:SetFont("DermaDefault")
+   dfields.type:MoveBelow(dfields.name)
+
+   dfields.desc:SetFont("DermaDefaultBold")
+   dfields.desc:SetContentAlignment(7)
+   dfields.desc:MoveBelow(dfields.type, 1)
 
    local iw, ih = dinfo:GetSize()
 
-   local dhelp = vgui.Create("DForm", dinfobg)
-   dhelp:SetName(GetTranslation("equip_status"))
-   dhelp:SetPos(0, ih + m)
-   dhelp:SetSize(diw, dih - ih - m*2)
-   dhelp:SetSpacing(4)
-   dhelp:SetPadding(8)
+   local dhelp = vgui.Create("ColoredBox", dinfobg)
+   dhelp:SetColor(Color(90, 90, 95))
+   dhelp:SetSize(diw, dih - 205)
+   dhelp:MoveBelow(dinfo, m)
 
-   local update_preqs = PreqLabels(dhelp)
+   local update_preqs = PreqLabels(dhelp, m*3, m*2)
 
    dhelp:SizeToContents()
 
    local dconfirm = vgui.Create("DButton", dinfobg)
-   dconfirm:SetPos(0, dinfobg:GetTall() - bh*2 + m)
+   dconfirm:SetPos(0, dih - bh*2)
    dconfirm:SetSize(bw, bh)
    dconfirm:SetDisabled(true)
    dconfirm:SetText(GetTranslation("equip_confirm"))
 
 
-   dsheet:AddSheet(GetTranslation("equip_tabtitle"), dequip, "gui/silkicons/bomb", false, false, "Traitor equipment menu")
+   dsheet:AddSheet(GetTranslation("equip_tabtitle"), dequip, "icon16/bomb.png", false, false, "Traitor equipment menu")
 
    -- Item control
    if ply:HasEquipmentItem(EQUIP_RADAR) then
       local dradar = RADAR.CreateMenu(dsheet, dframe)
-      dsheet:AddSheet(GetTranslation("radar_name"), dradar, "gui/silkicons/magnifier", false,false, "Radar control")
+      dsheet:AddSheet(GetTranslation("radar_name"), dradar, "icon16/magnifier.png", false,false, "Radar control")
    end
 
    if ply:HasEquipmentItem(EQUIP_DISGUISE) then
       local ddisguise = DISGUISE.CreateMenu(dsheet)
-      dsheet:AddSheet(GetTranslation("disg_name"), ddisguise, "gui/silkicons/user", false,false, "Disguise control")
+      dsheet:AddSheet(GetTranslation("disg_name"), ddisguise, "icon16/user.png", false,false, "Disguise control")
    end
-   
+
    -- Weapon/item control
    if IsValid(ply.radio) or ply:HasWeapon("weapon_ttt_radio") then
       local dradio = TRADIO.CreateMenu(dsheet)
-      dsheet:AddSheet(GetTranslation("radio_name"), dradio, "gui/silkicons/sound", false,false, "Radio control")
+      dsheet:AddSheet(GetTranslation("radio_name"), dradio, "icon16/transmit.png", false,false, "Radio control")
    end
 
    -- Credit transferring
    if credits > 0 then
       local dtransfer = CreateTransferMenu(dsheet)
-      dsheet:AddSheet(GetTranslation("xfer_name"), dtransfer, "gui/silkicons/folder_go", false,false, "Transfer credits")
+      dsheet:AddSheet(GetTranslation("xfer_name"), dtransfer, "icon16/group_gear.png", false,false, "Transfer credits")
    end
+
+   hook.Run("TTTEquipmentTabs", dsheet)
 
 
    -- couple panelselect with info
@@ -430,7 +414,7 @@ local function TraitorMenuPopup()
                          end
 
    local dcancel = vgui.Create("DButton", dframe)
-   dcancel:SetPos(w - 10 - bw, h - bh - 14)
+   dcancel:SetPos(w - 13 - bw, h - bh - 16)
    dcancel:SetSize(bw, bh)
    dcancel:SetDisabled(false)
    dcancel:SetText(GetTranslation("close"))
@@ -444,7 +428,7 @@ end
 concommand.Add("ttt_cl_traitorpopup", TraitorMenuPopup)
 
 local function ForceCloseTraitorMenu(ply, cmd, args)
-   if ValidPanel(eqframe) then
+   if IsValid(eqframe) then
       eqframe:Close()
    end
 end
@@ -456,38 +440,42 @@ function GM:OnContextMenuOpen()
    if r == ROUND_ACTIVE and not (LocalPlayer():GetTraitor() or LocalPlayer():GetDetective()) then 
       return
    elseif r == ROUND_POST or r == ROUND_PREP then
-      CLSCORE:Reopen()
+      CLSCORE:Toggle()
       return
    end
 
-   RunConsoleCommand("ttt_cl_traitorpopup")
+   if IsValid(eqframe) then
+      eqframe:Close()
+   else
+      RunConsoleCommand("ttt_cl_traitorpopup")
+   end
 end
 
-local function ReceiveEquipment(um)
+local function ReceiveEquipment()
    local ply = LocalPlayer()
-   if not ValidEntity(ply) then return end
+   if not IsValid(ply) then return end
 
-   ply.equipment_items = um:ReadShort()
+   ply.equipment_items = net.ReadUInt(16)
 end
-usermessage.Hook("equipment", ReceiveEquipment)
+net.Receive("TTT_Equipment", ReceiveEquipment)
 
-local function ReceiveCredits(um)
+local function ReceiveCredits()
    local ply = LocalPlayer()
-   if not ValidEntity(ply) then return end
+   if not IsValid(ply) then return end
 
-   ply.equipment_credits = um:ReadChar()
+   ply.equipment_credits = net.ReadUInt(8)
 end
-usermessage.Hook("credits", ReceiveCredits)
+net.Receive("TTT_Credits", ReceiveCredits)
 
 local r = 0
-local function ReceiveBought(um)
+local function ReceiveBought()
    local ply = LocalPlayer()
-   if not ValidEntity(ply) then return end
+   if not IsValid(ply) then return end
 
    ply.bought = {}
-   local num = um:ReadShort()
+   local num = net.ReadUInt(8)
    for i=1,num do
-      local s = um:ReadString()
+      local s = net.ReadString()
       if s != "" then
          table.insert(ply.bought, s)
       end
@@ -503,5 +491,14 @@ local function ReceiveBought(um)
       r = 0
    end
 end
-usermessage.Hook("bought", ReceiveBought)
+net.Receive("TTT_Bought", ReceiveBought)
 
+-- Player received the item he has just bought, so run clientside init
+local function ReceiveBoughtItem()
+   local is_item = net.ReadBit() == 1
+   local id = is_item and net.ReadUInt(16) or net.ReadString()
+
+   -- I can imagine custom equipment wanting this, so making a hook
+   hook.Run("TTTBoughtItem", is_item, id)
+end
+net.Receive("TTT_BoughtItem", ReceiveBoughtItem)

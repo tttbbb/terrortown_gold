@@ -1,19 +1,24 @@
-
+include("datastream.lua")
 include("shared.lua")
 
-COLOR_WHITE = Color(255,255,255,255)
-COLOR_BLACK = Color(0,0,0,255)
-COLOR_GREEN = Color(0,255,0,255)
-COLOR_RED = Color(255, 0, 0, 255)
-COLOR_YELLOW = Color(200, 200, 0, 255)
-COLOR_LGRAY = Color(200, 200, 200, 255)
-COLOR_BLUE = Color(0,0,255, 255)
+-- Define GM12 fonts for compatibility
+surface.CreateFont("DefaultBold", {font = "Tahoma",
+                                   size = 13,
+                                   weight = 1000})
+surface.CreateFont("TabLarge",    {font = "Tahoma",
+                                   size = 13,
+                                   weight = 700,
+                                   shadow = true, antialias = false})
+surface.CreateFont("Trebuchet22", {font = "Trebuchet MS",
+                                   size = 22,
+                                   weight = 900})
 
 include("scoring_shd.lua")
 include("corpse_shd.lua")
 include("player_ext_shd.lua")
 include("weaponry_shd.lua")
 
+include("vgui/ColoredBox.lua")
 include("vgui/SimpleIcon.lua")
 include("vgui/ProgressBar.lua")
 include("vgui/ScrollLabel.lua")
@@ -52,22 +57,14 @@ function GM:Initialize()
    self.BaseClass:Initialize()
 end
 
-CreateConVar("ttt_cl_disable_frettasplash", "0", FCVAR_ARCHIVE)
 function GM:InitPostEntity()
    MsgN("TTT Client post-init...")
 
-   if not GetConVar("ttt_cl_disable_frettasplash"):GetBool() then
-      GAMEMODE:ShowSplash()
-   end
+   net.Start("TTT_Spectate")
+     net.WriteBool(GetConVar("ttt_spectator_mode"):GetBool())
+   net.SendToServer()
 
-   RunConsoleCommand("ttt_spectate", GetConVar("ttt_spectator_mode"):GetInt())
-
-   if GetConVar("myinfo_bytes"):GetInt() < 1000 then
-      MsgN("Increasing net buffer size...")
-      RunConsoleCommand("myinfo_bytes", "1024")
-   end
-
-   if not SinglePlayer() then
+   if not game.SinglePlayer() then
       timer.Create("idlecheck", 5, 0, CheckIdle)
    end
 
@@ -80,6 +77,7 @@ function GM:InitPostEntity()
    timer.Create("cache_ents", 1, 0, GAMEMODE.DoCacheEnts)
 
    RunConsoleCommand("_ttt_request_serverlang")
+   RunConsoleCommand("_ttt_request_rolelist")
 end
 
 function GM:DoCacheEnts()
@@ -147,7 +145,6 @@ local function RoundStateChange(o, n)
    end
 end
 
-
 concommand.Add("ttt_print_playercount", function() print(GAMEMODE.StartingPlayers) end)
 
 
@@ -170,9 +167,9 @@ GM.TTTEndRound = PlaySoundCue
 
 --- usermessages
 
-local function ReceiveRole(um)
+local function ReceiveRole()
    local client = LocalPlayer()
-   local role = um:ReadChar()
+   local role = net.ReadUInt(2)
 
    -- after a mapswitch, server might have sent us this before we are even done
    -- loading our code
@@ -185,33 +182,31 @@ local function ReceiveRole(um)
    elseif client:IsDetective() then MsgN("DETECTIVE")
    else MsgN("INNOCENT") end
 end
-usermessage.Hook("ttt_role", ReceiveRole)
+net.Receive("TTT_Role", ReceiveRole)
 
-local function ReceiveRoleList(um)
-   local role = um:ReadChar()
-   local num_ids = um:ReadChar()
+local function ReceiveRoleList()
+   local role = net.ReadUInt(2)
+   local num_ids = net.ReadUInt(8)
 
    for i=1, num_ids do
-      local eidx = um:ReadShort()
+      local eidx = net.ReadUInt(7) + 1 -- we - 1 worldspawn=0
 
       local ply = player.GetByID(eidx)
-      if ValidEntity(ply) and ply.SetRole then
+      if IsValid(ply) and ply.SetRole then
          ply:SetRole(role)
 
          if ply:IsTraitor() then
             ply.traitor_gvoice = false -- assume traitorchat by default
          end
-
-         --print(ply, "is", RoleToString(ply))
       end
    end
 end
-usermessage.Hook("role_list", ReceiveRoleList)
+net.Receive("TTT_RoleList", ReceiveRoleList)
 
 -- Round state comm
-local function ReceiveRoundState(um)
+local function ReceiveRoundState()
    local o = GetRoundState()
-   GAMEMODE.round_state = um:ReadChar()
+   GAMEMODE.round_state = net.ReadUInt(3)
 
    if o != GAMEMODE.round_state then
       RoundStateChange(o, GAMEMODE.round_state)
@@ -219,7 +214,7 @@ local function ReceiveRoundState(um)
 
    MsgN("Round state: " .. GAMEMODE.round_state)
 end
-usermessage.Hook("round_state", ReceiveRoundState)
+net.Receive("TTT_RoundState", ReceiveRoundState)
 
 -- Cleanup at start of new round
 function GM:ClearClientState()
@@ -254,16 +249,16 @@ function GM:ClearClientState()
       gui.EnableScreenClicker(false)
    end
 end
-usermessage.Hook("clearclientstate", GM.ClearClientState)
+net.Receive("TTT_ClearClientState", GM.ClearClientState)
 
 function GM:CleanUpMap()
    -- Ragdolls sometimes stay around on clients. Deleting them can create issues
    -- so all we can do is try to hide them.
    for _, ent in pairs(ents.FindByClass("prop_ragdoll")) do
-      if ValidEntity(ent) and CORPSE.GetPlayerNick(ent, "") != "" then
+      if IsValid(ent) and CORPSE.GetPlayerNick(ent, "") != "" then
          ent:SetNoDraw(true)
          ent:SetSolid(SOLID_NONE)
-         ent:SetColor(0,0,0,0)
+         ent:SetColor(Color(0,0,0,0))
 
          -- Horrible hack to make targetid ignore this ent, because we can't
          -- modify the collision group clientside.
@@ -276,24 +271,24 @@ function GM:CleanUpMap()
 end
 
 -- server tells us to call this when our LocalPlayer has spawned
-local function PlayerSpawn(um)
-   local as_spec = um:ReadBool()
+local function PlayerSpawn()
+   local as_spec = net.ReadBit() == 1
    if as_spec then
       TIPS.Show()
    else
       TIPS.Hide()
    end
 end
-usermessage.Hook("plyspawned", PlayerSpawn)
+net.Receive("TTT_PlayerSpawned", PlayerSpawn)
 
 local function PlayerDeath()
    TIPS.Show()
 end
-usermessage.Hook("plydied", PlayerDeath)
+net.Receive("TTT_PlayerDied", PlayerDeath)
 
 function GM:ShouldDrawLocalPlayer(ply) return false end
 
-local view = {origin = vector_origin, angles = angle_zero, fov=0, vm_origin = vector_origin, vm_angles = angle_zero}
+local view = {origin = vector_origin, angles = angle_zero, fov=0}
 function GM:CalcView( ply, origin, angles, fov )
    view.origin = origin
    view.angles = angles
@@ -316,17 +311,10 @@ function GM:CalcView( ply, origin, angles, fov )
 
    local wep = ply:GetActiveWeapon()
    if IsValid(wep) then
-
-      local func = wep.GetViewModelPosition
-      if func then
-         view.vm_origin,  view.vm_angles = func( wep, origin*1, angles*1 )
-      end
-
-      func = wep.CalcView
+      local func = wep.CalcView
       if func then
          view.origin, view.angles, view.fov = func( wep, ply, origin*1, angles*1, fov )
       end
-
    end
 
    return view
@@ -388,6 +376,9 @@ function CheckIdle()
 
          timer.Simple(0.3, function()
                               RunConsoleCommand("ttt_spectator_mode", 1)
+                               net.Start("TTT_Spectate")
+                                 net.WriteBool(true)
+                               net.SendToServer()
                               RunConsoleCommand("ttt_cl_idlepopup")
                            end)
       elseif CurTime() > (idle.t + (idle_limit / 2)) then
@@ -397,3 +388,24 @@ function CheckIdle()
    end
 end
 
+function GM:OnEntityCreated(ent)
+   -- Make ragdolls look like the player that has died
+   if ent:IsRagdoll() then
+      local ply = CORPSE.GetPlayer(ent)
+
+      if IsValid(ply) then
+         -- Only copy any decals if this ragdoll was recently created
+         if ent:GetCreationTime() > CurTime() - 1 then
+            ent:SnatchModelInstance(ply)
+         end
+
+         -- Copy the color for the PlayerColor matproxy
+         local playerColor = ply:GetPlayerColor()
+         ent.GetPlayerColor = function()
+            return playerColor
+         end
+      end
+   end
+
+   return self.BaseClass.OnEntityCreated(self, ent)
+end

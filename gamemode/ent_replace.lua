@@ -86,12 +86,12 @@ local function ReplaceWeaponSingle(ent, cls)
       return
    else
       if cls == nil then cls = ent:GetClass() end
-      
+
       local rpl = hl2_weapon_replace[cls]
       if rpl then
          ReplaceSingle(ent, rpl)
       end
-      
+
    end
 end
 
@@ -107,7 +107,7 @@ end
 -- Exposed because it's also done at BeginRound
 function ents.TTT.RemoveRagdolls(player_only)
    for k, ent in pairs(ents.FindByClass("prop_ragdoll")) do
-      if ValidEntity(ent) then
+      if IsValid(ent) then
          if not player_only and string.find(ent:GetModel(), "zm_", 6, true) then
             ent:Remove()
          elseif ent.player_ragdoll then
@@ -175,7 +175,7 @@ local broken_parenting_ents = {
 function ents.TTT.FixParentedPreCleanup()
    for _, rcls in pairs(broken_parenting_ents) do
       for k,v in pairs(ents.FindByClass(rcls)) do
-         if IsValid(v:GetParent()) then
+         if v.GetParent and IsValid(v:GetParent()) then
             v.CachedParentName = v:GetParent():GetName()
             v:SetParent(nil)
 
@@ -277,7 +277,7 @@ function ents.TTT.GetSpawnableAmmo()
 end
 
 local function PlaceWeapon(swep, pos, ang)
-   local cls = swep and swep.Classname
+   local cls = swep and WEPS.GetClass(swep)
    if not cls then return end
 
    -- Create the weapon, somewhat in the air in case the spot hugs the ground.
@@ -291,7 +291,7 @@ local function PlaceWeapon(swep, pos, ang)
    if ent.AmmoEnt then
       for i=1, math.random(0,3) do
          local ammo = ents.Create(ent.AmmoEnt)
-         
+
          if IsValid(ammo) then
             pos.z = pos.z + 2
             ammo:SetPos(pos)
@@ -305,7 +305,8 @@ local function PlaceWeapon(swep, pos, ang)
    return ent
 end
 
--- Spawns a bunch of guns (scaling with playercount) at randomly selected
+-- Spawns a bunch of guns (scaling with maxplayers count or 
+-- by ttt_weapon_spawn_max cvar) at randomly selected
 -- entities of the classes given the table
 local function PlaceWeaponsAtEnts(spots_classes)
    local spots = {}
@@ -316,10 +317,13 @@ local function PlaceWeaponsAtEnts(spots_classes)
    end
 
    local spawnables = ents.TTT.GetSpawnableSWEPs()
-
-   local max = math.max(server_settings.Int("maxplayers", 16), #player.GetAll())
-   max = max + math.max(3, 0.33 * max)
-
+   
+   local max = GetConVar( "ttt_weapon_spawn_count" ):GetInt()
+   if max == 0 then 
+      max = game.MaxPlayers()
+      max = max + math.max(3, 0.33 * max)
+   end
+   
    local num = 0
    local w = nil
    for k, v in RandomPairs(spots) do
@@ -348,7 +352,7 @@ end
 
 local function PlaceExtraWeaponsForCSS()
    MsgN("Weaponless CS:S-like map detected. Placing extra guns.")
-   
+
    local spots_classes = {
       "info_player_terrorist",
       "info_player_counterterrorist",
@@ -442,7 +446,8 @@ local function RemoveWeaponEntities()
    end
 
    for _, sw in pairs(ents.TTT.GetSpawnableSWEPs()) do
-      for k, ent in pairs(ents.FindByClass(sw.Classname)) do
+      local cn = WEPS.GetClass(sw)
+      for k, ent in pairs(ents.FindByClass(cn)) do
          ent:Remove()
       end
    end
@@ -462,6 +467,7 @@ local function CreateImportedEnt(cls, pos, ang, kv)
    if not cls or not pos or not ang or not kv then return false end
 
    local ent = ents.Create(cls)
+   if not IsValid(ent) then return false end
    ent:SetPos(pos)
    ent:SetAngles(ang)
 
@@ -480,29 +486,29 @@ function ents.TTT.CanImportEntities(map)
    if not tostring(map) then return false end
    if not GetConVar("ttt_use_weapon_spawn_scripts"):GetBool() then return false end
 
-   local fname = "../maps/" .. map .. "_ttt.txt"
+   local fname = "maps/" .. map .. "_ttt.txt"
 
-   return file.Exists(fname)
+   return file.Exists(fname, "GAME")
 end
 
 local function ImportSettings(map)
    if not ents.TTT.CanImportEntities(map) then return end
 
-   local fname = "../maps/" .. map .. "_ttt.txt"
-   local buf = file.Read(fname)
+   local fname = "maps/" .. map .. "_ttt.txt"
+   local buf = file.Read(fname, "GAME")
 
    local settings = {}
 
    local lines = string.Explode("\n", buf)
    for k, line in pairs(lines) do
       if string.match(line, "^setting") then
-         local key, val = string.match(line, "^setting:\t(%w*) ([0-9]*)$")
+         local key, val = string.match(line, "^setting:\t(%w*) ([0-9]*)")
          val = tonumber(val)
 
-         if key and val then 
+         if key and val then
             settings[key] = val
          else
-            ErrorNoHalt("Invalid line " .. k .. " in " .. fname .. "\n")
+            ErrorNoHalt("Invalid setting line " .. k .. " in " .. fname .. "\n")
          end
       end
    end
@@ -517,22 +523,22 @@ local classremap = {
 local function ImportEntities(map)
    if not ents.TTT.CanImportEntities(map) then return end
 
-   local fname = "../maps/" .. map .. "_ttt.txt"
+   local fname = "maps/" .. map .. "_ttt.txt"
 
-   local buf = file.Read(fname)
+   local buf = file.Read(fname, "GAME")
    local lines = string.Explode("\n", buf)
    local num = 0
    for k, line in ipairs(lines) do
-      if (not string.match(line, "^#")) and (not string.match(line, "^setting")) and line != "" then
+      if (not string.match(line, "^#")) and (not string.match(line, "^setting")) and line != "" and string.byte(line) != 0 then
          local data = string.Explode("\t", line)
 
          local fail = true -- pessimism
 
-         if data[2] and data[3] then 
+         if data[2] and data[3] then
             local cls = data[1]
             local ang = nil
             local pos = nil
-            
+
             local posraw = string.Explode(" ", data[2])
             pos = Vector(tonumber(posraw[1]), tonumber(posraw[2]), tonumber(posraw[3]))
 
@@ -548,7 +554,7 @@ local function ImportEntities(map)
 
                if key and val then
                   kv[key] = val
-               end               
+               end
             end
 
             -- Some dummy ents remap to different, real entity names
@@ -564,7 +570,7 @@ local function ImportEntities(map)
          end
       end
    end
-   
+
    MsgN("Spawned " .. num .. " entities found in script.")
 
    return true

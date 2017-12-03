@@ -39,7 +39,7 @@ function PANEL:Init()
    self.List = vgui.Create("DPanelSelect", self)
    self.List:EnableHorizontal(true)
 
-   if self.List.VBar then 
+   if self.List.VBar then
       self.List.VBar:Remove()
       self.List.VBar = nil
    end
@@ -59,7 +59,7 @@ function PANEL:PerformLayout()
    self.List:SetSize(self:GetWide(), 70)
    self.List:SetSpacing(1)
    self.List:SetPadding(2)
-   self.List:SetDrawBackground(false)
+   self.List:SetPaintBackground(false)
 
    self.Scroll:StretchToParent(3,3,3,3)
 
@@ -77,7 +77,7 @@ function PANEL:UpdatePlayerData()
    self.Help:SetVisible(false)
 
    if self.Search == self.Player.search_result then return end
-  
+
    self.List:Clear(true)
    self.Scroll.Panels = {}
 
@@ -153,7 +153,7 @@ end
 
 function PANEL:SetPlayer(ply)
    self.Player = ply
-   
+
    for _, btn in pairs(self.TagButtons) do
       btn:SetPlayer(ply)
    end
@@ -177,7 +177,7 @@ function PANEL:PerformLayout()
    local margin = 10
    local x = 250 --29
    local y = 0
-   
+
    for k, btn in ipairs(self.TagButtons) do
       btn:SetPos(x, y)
       btn:SetCursor("hand")
@@ -204,8 +204,11 @@ function PANEL:Init()
    self:SetPaintBackgroundEnabled(false)
    self:SetPaintBorderEnabled(false)
 
-   self:SetDrawBackground(false)
+   self:SetPaintBackground(false)
    self:SetDrawBorder(false)
+
+   self:SetFont("treb_small")
+   self:SetTextColor(self.Tag and self.Tag.color or COLOR_WHITE)
 end
 
 function PANEL:SetPlayer(ply)
@@ -217,11 +220,8 @@ function PANEL:SetupTag(tag)
 
    self.Color = tag.color
    self.Text = tag.txt
-end
 
-function PANEL:ApplySchemeSettings()
-   self:SetFGColor(self.Tag and self.Tag.color or COLOR_WHITE)
-   self:SetFont("treb_small")
+   self:SetTextColor(self.Tag and self.Tag.color or COLOR_WHITE)
 end
 
 function PANEL:PerformLayout()
@@ -260,4 +260,4 @@ function PANEL:PaintOver()
    end
 end
 
-vgui.Register("TagButton", PANEL, "Button")
+vgui.Register("TagButton", PANEL, "DButton")

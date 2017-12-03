@@ -54,7 +54,7 @@ function plymeta:GetBaseKarma() return self:GetNWFloat("karma", 1000) end
 
 function plymeta:HasEquipmentWeapon()
    for _, wep in pairs(self:GetWeapons()) do
-      if ValidEntity(wep) and wep:IsEquipment() then
+      if IsValid(wep) and wep:IsEquipment() then
          return true
       end
    end
@@ -98,9 +98,7 @@ function plymeta:HasEquipmentItem(id)
    if not id then
       return self:GetEquipmentItems() != EQUIP_NONE
    else
-      -- eh, 1 << x returns a string?
-      --return self:GetEquipmentItems() & (1 << id) > 0
-      return self:GetEquipmentItems() & id == id
+      return util.BitSet(self:GetEquipmentItems(), id)
    end
 end
 
@@ -144,7 +142,7 @@ function plymeta:GetEyeTrace(mask)
    self.PlayerTrace = util.TraceLine(tr)
    self.LastPlayerTrace = CurTime()
    self.LastPlayerTraceMask = mask
-   
+
    return self.PlayerTrace
 end
 
@@ -152,7 +150,7 @@ end
 if CLIENT then
 
    function plymeta:AnimApplyGesture(act, weight)
-      self:AnimRestartGesture(  GESTURE_SLOT_CUSTOM, act)
+      self:AnimRestartGesture(GESTURE_SLOT_CUSTOM, act, true) -- true = autokill
       self:AnimSetGestureWeight(GESTURE_SLOT_CUSTOM, weight)
    end
 
@@ -202,7 +200,7 @@ if CLIENT then
 
       local runner = custom_runner or act_runner[act]
       if not runner then return false end
-      
+
       self.GestureWeight = 0
       self.GestureRunner = runner
 
@@ -217,7 +215,7 @@ if CLIENT then
          if self.GestureWeight <= 0 then
             self.GestureRunner = nil
          end
-      end      
+      end
    end
 
    function GM:UpdateAnimation(ply, vel, maxseqgroundspeed)
@@ -228,13 +226,13 @@ if CLIENT then
 
    function GM:GrabEarAnimation(ply) end
 
-   usermessage.Hook("ttt_performgesture", function(um)
-                                             local ply = um:ReadEntity()
-                                             local act = um:ReadLong()
-                                             if IsValid(ply) and act then
-                                                ply:AnimPerformGesture(act)
-                                             end
-                                          end)
+   net.Receive("TTT_PerformGesture", function()
+      local ply = net.ReadEntity()
+      local act = net.ReadUInt(16)
+      if IsValid(ply) and act then
+         ply:AnimPerformGesture(act)
+      end
+   end)
 
 else -- SERVER
 
@@ -242,6 +240,12 @@ else -- SERVER
    -- performing a gesture. This allows the client to decide whether it should
    -- play, depending on eg. a cvar.
    function plymeta:AnimPerformGesture(act)
-      SendUserMessage("ttt_performgesture", nil, self, act)
+
+      if not act then return end
+
+      net.Start("TTT_PerformGesture")
+         net.WriteEntity(self)
+         net.WriteUInt(act, 16)
+      net.Broadcast()
    end
 end

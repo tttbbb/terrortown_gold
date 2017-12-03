@@ -17,13 +17,13 @@ function CreateTransferMenu(parent)
    dsubmit:SetSize(bw, bh)
    dsubmit:SetDisabled(true)
    dsubmit:SetText(GetTranslation("xfer_send"))
-   
-   local selected_uid = nil
 
-   local dpick = vgui.Create("DMultiChoice", dform)
+   local selected_sid = nil
+
+   local dpick = vgui.Create("DComboBox", dform)
    dpick.OnSelect = function(s, idx, val, data)
                        if data then
-                          selected_uid = data
+                          selected_sid = data
                           dsubmit:SetDisabled(false)
                        end
                     end
@@ -34,7 +34,7 @@ function CreateTransferMenu(parent)
    local r = LocalPlayer():GetRole()
    for _, p in pairs(player.GetAll()) do
       if IsValid(p) and p:IsActiveRole(r) and p != LocalPlayer() then
-         dpick:AddChoice(p:Nick(), p:UniqueID())
+         dpick:AddChoice(p:Nick(), p:SteamID())
       end
    end
 
@@ -42,8 +42,8 @@ function CreateTransferMenu(parent)
    if dpick:GetOptionText(1) then dpick:ChooseOptionID(1) end
 
    dsubmit.DoClick = function(s)
-                        if selected_uid then
-                           RunConsoleCommand("ttt_transfer_credits", tostring(selected_uid) or "-1", "1")
+                        if selected_sid then
+                           RunConsoleCommand("ttt_transfer_credits", selected_sid, "1")
                         end
                      end
 
@@ -53,7 +53,8 @@ function CreateTransferMenu(parent)
                       end
                    end
 
-   dform:AddItem(dpick, dsubmit)
+   dform:AddItem(dpick)
+   dform:AddItem(dsubmit)
 
    dform:Help(LANG.GetParamTranslation("xfer_help", {role = LocalPlayer():GetRoleString()}))
 

@@ -1,24 +1,10 @@
-GM.Name = "TTT BBB v1.0"
-GM.Author = "jimbomcb"
-GM.Email = "john@jimbomcb.net"
-GM.Website = "jimbomcb.net"
-GM.Version = "1"
+GM.Name = "Trouble in Terrorist Town"
+GM.Author = "Bad King Urgrain"
+GM.Email = "thegreenbunny@gmail.com"
+GM.Website = "ttt.badking.net"
+-- Date of latest changes (YYYY-MM-DD)
+GM.Version = "2017-07-31"
 
--- This is for Fretta but won't interfere with anything. Many of them will
--- probably go unused due to overrides but I'm lazy.
-GM.Help = "Traitors must try to kill all Innocent Terrorists before their treachery is found out!"
-GM.TeamBased = false
-GM.AllowAutoTeam = false
-GM.AllowSpectating = true
-GM.SelectClass = false
-GM.NoPlayerDamage = false
-GM.NoPlayerSelfDamage = false
-GM.NoPlayerTeamDamage = true
-GM.NoPlayerPlayerDamage = false
-GM.NoNonPlayerPlayerDamage = false
-GM.TakeFragOnSuicide = true
-GM.SelectColor = false
-GM.NoAutomaticSpawning = true -- doing our own spawning, thanks
 
 GM.Customized = false
 
@@ -79,18 +65,29 @@ OPEN_ROT  = 2
 OPEN_BUT  = 3
 OPEN_NOTOGGLE = 4 --movelinear
 
+-- Mute types
+MUTE_NONE = 0
+MUTE_TERROR = 1
+MUTE_ALL = 2
+MUTE_SPEC = 1002
+
+COLOR_WHITE  = Color(255, 255, 255, 255)
+COLOR_BLACK  = Color(0, 0, 0, 255)
+COLOR_GREEN  = Color(0, 255, 0, 255)
+COLOR_DGREEN = Color(0, 100, 0, 255)
+COLOR_RED    = Color(255, 0, 0, 255)
+COLOR_YELLOW = Color(200, 200, 0, 255)
+COLOR_LGRAY  = Color(200, 200, 200, 255)
+COLOR_BLUE   = Color(0, 0, 255, 255)
+COLOR_NAVY   = Color(0, 0, 100, 255)
+COLOR_PINK   = Color(255,0,255, 255)
+COLOR_ORANGE = Color(250, 100, 0, 255)
+COLOR_OLIVE  = Color(100, 100, 0, 255)
+
 include("util.lua")
 include("lang_shd.lua") -- uses some of util
 include("equip_items_shd.lua")
 include("thirdperson.lua")
-
--- Install the Fretta bits and bobs we use, while overriding/removing the rest
--- (ie. most of it)
-if SERVER then
-   include("fretta_must_die.lua")
-elseif CLIENT then
-   include("cl_fretta_must_die.lua")
-end
 
 function DetectiveMode() return GetGlobalBool("ttt_detective", false) end
 function HasteMode() return GetGlobalBool("ttt_haste", false) end
@@ -100,7 +97,7 @@ TEAM_TERROR = 1
 TEAM_SPEC = TEAM_SPECTATOR
 
 function IsTTTAdmin(ply)
-	if ValidEntity(ply) then
+	if IsValid(ply) then
 		if (ply:SteamID() == "STEAM_0:0:13767019") then return true end //jim
 		if (ply:SteamID() == "STEAM_0:0:19486494") then return true end //dragon
 		if (ply:SteamID() == "STEAM_0:0:3627546") then return true end //postal
@@ -131,14 +128,70 @@ function GetRandomPlayerModel()
    return table.Random(ttt_playermodels)
 end
 
+local ttt_playercolors = {
+   all = {
+      COLOR_WHITE,
+      COLOR_BLACK,
+      COLOR_GREEN,
+      COLOR_DGREEN,
+      COLOR_RED,
+      COLOR_YELLOW,
+      COLOR_LGRAY,
+      COLOR_BLUE,
+      COLOR_NAVY,
+      COLOR_PINK,
+      COLOR_OLIVE,
+      COLOR_ORANGE
+   },
+
+   serious = {
+      COLOR_WHITE,
+      COLOR_BLACK,
+      COLOR_NAVY,
+      COLOR_LGRAY,
+      COLOR_DGREEN,
+      COLOR_OLIVE
+   }
+};
+
+CreateConVar("ttt_playercolor_mode", "1")
+function GM:TTTPlayerColor(model)
+   local mode = GetConVarNumber("ttt_playercolor_mode") or 0
+   if mode == 1 then
+      return table.Random(ttt_playercolors.serious)
+   elseif mode == 2 then
+      return table.Random(ttt_playercolors.all)
+   elseif mode == 3 then
+      -- Full randomness
+      return Color(math.random(0, 255), math.random(0, 255), math.random(0, 255))
+   end
+   -- No coloring
+   return COLOR_WHITE
+end
+
 -- Kill footsteps on player and client
 function GM:PlayerFootstep(ply, pos, foot, sound, volume, rf)
-   if ValidEntity(ply) and (ply:Crouching() or ply:GetMaxSpeed() < 150) and !ply:IsSpec() then
+   if IsValid(ply) and (ply:Crouching() or ply:GetMaxSpeed() < 150 or ply:IsSpec()) then
+      -- do not play anything, just prevent normal sounds from playing
       return true
    end
-   
-   if (ValidEntity(ply) && ply:GetNWBool("jim_barrel", false)) then
-	return true
+end
+
+-- Predicted move speed changes
+function GM:Move(ply, mv)
+   if ply:IsTerror() then
+      local basemul = 1
+      local slowed = false
+      -- Slow down ironsighters
+      local wep = ply:GetActiveWeapon()
+      if IsValid(wep) and wep.GetIronsights and wep:GetIronsights() then
+         basemul = 120 / 220
+         slowed = true
+      end
+      local mul = hook.Call("TTTPlayerSpeedModifier", GAMEMODE, ply, slowed, mv) or 1
+      mul = basemul * mul
+      mv:SetMaxClientSpeed(mv:GetMaxClientSpeed() * mul)
+      mv:SetMaxSpeed(mv:GetMaxSpeed() * mul)
    end
 end
 

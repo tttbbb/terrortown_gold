@@ -3,27 +3,25 @@
 
 -- tbl is first created here on both server and client
 -- could make it a module but meh
+if LANG then return end
 LANG = {}
 
-IncludeClientFile("cl_lang.lua")
+util.IncludeClientFile("cl_lang.lua")
 
 -- Add all lua files in our /lang/ dir
-local dir = GM.FolderName or "terrortown_gold"
-for _, fname in pairs(file.FindInLua(dir .. "/gamemode/lang/*.lua")) do
+local dir = GM.FolderName or "terrortown"
+local files, dirs = file.Find(dir .. "/gamemode/lang/*.lua", "LUA" )
+for _, fname in pairs(files) do
    local path = "lang/" .. fname
    -- filter out directories and temp files (like .lua~)
-   if (not file.IsDir(path)) and string.Right(fname, 3) == "lua" then
-      IncludeClientFile(path)
+   if string.Right(fname, 3) == "lua" then
+      util.IncludeClientFile(path)
       MsgN("Included TTT language file: " .. fname)
    end
 end
 
 
-local umsg_name = "ttt_lang_msg"
-
 if SERVER then
-   umsg.PoolString(umsg_name)
-
    local count = table.Count
 
    -- Can be called as:
@@ -48,20 +46,24 @@ if SERVER then
       -- number of keyval param pairs to send
       local c = params and count(params) or 0
 
-      umsg.Start(umsg_name, send_to)
-      umsg.String(name)
+      net.Start("TTT_LangMsg")
+         net.WriteString(name)
 
-      if c > 0 then
-         umsg.Char(c)
-         
-         for k, v in pairs(params) do
-            -- assume keys are strings, but vals may be numbers
-            umsg.String(k)
-            umsg.String(tostring(v))
+         net.WriteUInt(c, 8)
+         if c > 0 then
+
+            for k, v in pairs(params) do
+               -- assume keys are strings, but vals may be numbers
+               net.WriteString(k)
+               net.WriteString(tostring(v))
+            end
          end
+
+      if send_to then
+         net.Send(send_to)
+      else
+         net.Broadcast()
       end
-      
-      umsg.End()
    end
 
    function LANG.MsgAll(name, params)
@@ -72,32 +74,35 @@ if SERVER then
 
    local function ServerLangRequest(ply, cmd, args)
       if not IsValid(ply) then return end
-      SendUserMessage("ttt_serverlang", ply, GetConVarString("ttt_lang_serverdefault"))
+
+      net.Start("TTT_ServerLang")
+         net.WriteString(GetConVarString("ttt_lang_serverdefault"))
+      net.Send(ply)
    end
    concommand.Add("_ttt_request_serverlang", ServerLangRequest)
 
 else -- CLIENT
 
-   local function RecvMsg(um)
-      local name = um:ReadString()
+   local function RecvMsg()
+      local name = net.ReadString()
 
-      local c = um:ReadChar()
+      local c = net.ReadUInt(8)
       local params = nil
       if c > 0 then
          params = {}
          for i=1, c do
-            params[um:ReadString()] = um:ReadString()
+            params[net.ReadString()] = net.ReadString()
          end
       end
 
       LANG.Msg(name, params)
    end
-   usermessage.Hook(umsg_name, RecvMsg)
+   net.Receive("TTT_LangMsg", RecvMsg)
 
    LANG.Msg = LANG.ProcessMsg
 
-   local function RecvServerLang(um)
-      local lang_name = um:ReadString()
+   local function RecvServerLang()
+      local lang_name = net.ReadString()
       lang_name = lang_name and string.lower(lang_name)
       if LANG.Strings[lang_name] then
          if LANG.IsServerDefault(GetConVarString("ttt_language")) then
@@ -109,7 +114,7 @@ else -- CLIENT
          print("Server default language is:", lang_name)
       end
    end
-   usermessage.Hook("ttt_serverlang", RecvServerLang)
+   net.Receive("TTT_ServerLang", RecvServerLang)
 end
 
 -- It can be useful to send string names as params, that the client can then
@@ -123,11 +128,4 @@ LANG.Param = LANG.NameParam
 
 function LANG.GetNameParam(str)
    return string.match(str, "^LID\t([%w_]+)$")
-end
-
--- poolstring common param keys as they will be sent relatively often (few times per round)
-if SERVER then
-   for _, name in pairs({"num", "victim", "finder", "player", "role", "amount", "mapname"}) do
-      umsg.PoolString(name)
-   end
 end

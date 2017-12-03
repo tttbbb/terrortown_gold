@@ -48,7 +48,7 @@ function LANG.AddToLanguage(lang_name, string_name, string_text)
    lang_name = lang_name and string.lower(lang_name)
 
    if not LANG.IsLanguage(lang_name) then
-      ErrorNoHalt(Format("Failed to add '%s' to language '%s': language does not exist.", tostring(string_name), tostring(lang_name)))
+      ErrorNoHalt(Format("Failed to add '%s' to language '%s': language does not exist.\n", tostring(string_name), tostring(lang_name)))
    end
 
    LANG.Strings[lang_name][string_name] = string_text
@@ -141,7 +141,7 @@ function LANG.SetActiveLanguage(lang_name)
          hook.Call("TTTLanguageChanged", GAMEMODE, old_name, lang_name)
       end
    else
-      ErrorNoHalt(Format("The language '%s' does not exist on this server. Falling back to English...\n", lang_name))
+      MsgN(Format("The language '%s' does not exist on this server. Falling back to English...", lang_name))
 
       -- fall back to default if possible
       if lang_name != LANG.DefaultLanguage then
@@ -321,8 +321,6 @@ local styledmessages = {
    },
 
    chat_plain = {
-      "spec_teamchat_hint",
-      "inno_globalchat_hint",
       "body_call",
       "disg_turned_on",
       "disg_turned_off"

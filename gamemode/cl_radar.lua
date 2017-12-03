@@ -36,7 +36,7 @@ end
 function RADAR:Timeout()
    self:EndScan()
 
-   if self.repeating and LocalPlayer() and (LocalPlayer():IsActiveTraitor() or LocalPlayer():IsActiveDetective()) then
+   if self.repeating and LocalPlayer() and LocalPlayer():IsActiveSpecial() and LocalPlayer():HasEquipmentItem(EQUIP_RADAR) then
       RunConsoleCommand("ttt_radar_scan")
    end
 end
@@ -61,12 +61,21 @@ function RADAR.CacheEnts()
    end
 end
 
+function RADAR.Bought(is_item, id)
+   if is_item and id == EQUIP_RADAR then
+      RunConsoleCommand("ttt_radar_scan")
+   end
+end
+hook.Add("TTTBoughtItem", "RadarBoughtItem", RADAR.Bought)
+
 local function DrawTarget(tgt, size, offset, no_shrink)
    local scrpos = tgt.pos:ToScreen() -- sweet
    local sz = (IsOffScreen(scrpos) and (not no_shrink)) and size/2 or size
 
    scrpos.x = math.Clamp(scrpos.x, sz, ScrW() - sz)
    scrpos.y = math.Clamp(scrpos.y, sz, ScrH() - sz)
+   
+   if IsOffScreen(scrpos) then return end
 
    surface.DrawTexturedRect(scrpos.x - sz, scrpos.y - sz, sz * 2, sz * 2)
 
@@ -81,16 +90,16 @@ local function DrawTarget(tgt, size, offset, no_shrink)
 
       if tgt.t then
          -- Show time
-         text = string.FormattedTime(tgt.t - CurTime(), "%02i:%02i")
+         text = util.SimpleTime(tgt.t - CurTime(), "%02i:%02i")
          w, h = surface.GetTextSize(text)
-         
+
          surface.SetTextPos(scrpos.x - w / 2, scrpos.y + sz / 2)
          surface.DrawText(text)
       elseif tgt.nick then
          -- Show nickname
          text = tgt.nick
          w, h = surface.GetTextSize(text)
-         
+
          surface.SetTextPos(scrpos.x - w / 2, scrpos.y + sz / 2)
          surface.DrawText(text)
       end
@@ -98,12 +107,12 @@ local function DrawTarget(tgt, size, offset, no_shrink)
 end
 
 local indicator   = surface.GetTextureID("effects/select_ring")
-local c4warn      = surface.GetTextureID("VGUI/ttt/icon_c4warn")
-local sample_scan = surface.GetTextureID("VGUI/ttt/sample_scan")
-local det_beacon  = surface.GetTextureID("VGUI/ttt/det_beacon")
+local c4warn      = surface.GetTextureID("vgui/ttt/icon_c4warn")
+local sample_scan = surface.GetTextureID("vgui/ttt/sample_scan")
+local det_beacon  = surface.GetTextureID("vgui/ttt/det_beacon")
 
 local GetPTranslation = LANG.GetParamTranslation
-local FormatTime = string.FormattedTime
+local FormatTime = util.SimpleTime
 
 local near_cursor_dist = 180
 
@@ -117,7 +126,7 @@ function RADAR:Draw(client)
       surface.SetTexture(c4warn)
       surface.SetTextColor(200, 55, 55, 220)
       surface.SetDrawColor(255, 255, 255, 200)
-      
+
       for k, bomb in pairs(self.bombs) do
          DrawTarget(bomb, 24, 0, true)
       end
@@ -160,6 +169,9 @@ function RADAR:Draw(client)
       alpha = alpha_base
 
       scrpos = tgt.pos:ToScreen()
+      if not scrpos.visible then
+         continue
+      end
       md = mpos:Distance(Vector(scrpos.x, scrpos.y, 0))
       if md < near_cursor_dist then
          alpha = math.Clamp(alpha * (md / near_cursor_dist), 40, 230)
@@ -174,7 +186,7 @@ function RADAR:Draw(client)
          surface.SetDrawColor(0, 0, 255, alpha)
          surface.SetTextColor(0, 0, 255, alpha)
 
-      elseif role == -1 then -- decoys
+      elseif role == 3 then -- decoys
          surface.SetDrawColor(150, 150, 150, alpha)
          surface.SetTextColor(150, 150, 150, alpha)
 
@@ -197,13 +209,13 @@ function RADAR:Draw(client)
    surface.DrawText(text)
 end
 
-local function ReceiveC4Warn(um)
-   local idx = um:ReadShort()
-   local armed = um:ReadBool()
+local function ReceiveC4Warn()
+   local idx = net.ReadUInt(16)
+   local armed = net.ReadBit() == 1
 
    if armed then
-      local pos = um:ReadVector()
-      local etime = um:ReadFloat()
+      local pos = net.ReadVector()
+      local etime = net.ReadFloat()
 
       RADAR.bombs[idx] = {pos=pos, t=etime}
    else
@@ -212,35 +224,36 @@ local function ReceiveC4Warn(um)
 
    RADAR.bombs_count = table.Count(RADAR.bombs)
 end
-usermessage.Hook("c4_warn", ReceiveC4Warn)
+net.Receive("TTT_C4Warn", ReceiveC4Warn)
 
-local function ReceiveCorpseCall(um)
-   local pos = um:ReadVector()
+local function ReceiveCorpseCall()
+   local pos = net.ReadVector()
    table.insert(RADAR.called_corpses, {pos = pos, called = CurTime()})
 end
-usermessage.Hook("corpse_call", ReceiveCorpseCall)
+net.Receive("TTT_CorpseCall", ReceiveCorpseCall)
 
-local function ReceiveRadarScan(um)
-   local num_targets = um:ReadChar()
+local function ReceiveRadarScan()
+   local num_targets = net.ReadUInt(8)
 
    RADAR.targets = {}
    for i=1, num_targets do
-      local r = um:ReadChar()
+      local r = net.ReadUInt(2)
 
       local pos = Vector()
-      pos.x = um:ReadShort()
-      pos.y = um:ReadShort()
-      pos.z = um:ReadShort()
+      pos.x = net.ReadInt(32)
+      pos.y = net.ReadInt(32)
+      pos.z = net.ReadInt(32)
 
       table.insert(RADAR.targets, {role=r, pos=pos})
    end
 
    RADAR.enable = true
    RADAR.endtime = CurTime() + RADAR.duration
-   
-   timer.Create("radartimeout", RADAR.duration + 1, 1, RADAR.Timeout, RADAR)
+
+   timer.Create("radartimeout", RADAR.duration + 1, 1,
+                function() RADAR:Timeout() end)
 end
-usermessage.Hook("radar", ReceiveRadarScan)
+net.Receive("TTT_Radar", ReceiveRadarScan)
 
 local GetTranslation = LANG.GetTranslation
 function RADAR.CreateMenu(parent, frame)

@@ -93,14 +93,14 @@ function SWEP:PrimaryAttack()
 	local tr = util.TraceHull({start=spos, endpos=sdest, filter=self.Owner, mask=MASK_SHOT_HULL, mins=kmins, maxs=kmaxs})
 
 	-- Hull might hit environment stuff that line does not hit
-	if not ValidEntity(tr.Entity) then
+	if not IsValid(tr.Entity) then
 	  tr = util.TraceLine({start=spos, endpos=sdest, filter=self.Owner, mask=MASK_SHOT_HULL})
 	end
 
 	local hitEnt = tr.Entity
 
 	-- effects
-	if ValidEntity(hitEnt) then
+	if IsValid(hitEnt) then
 	  self.Weapon:SendWeaponAnim( ACT_VM_HITCENTER )
 
 	  local edata = EffectData()
@@ -121,7 +121,7 @@ function SWEP:PrimaryAttack()
 	end
 
 
-	if SERVER and tr.Hit and tr.HitNonWorld and ValidEntity(hitEnt) then
+	if SERVER and tr.Hit and tr.HitNonWorld and IsValid(hitEnt) then
 	  if hitEnt:IsPlayer() then
 			self:StabKill(tr, spos, sdest)
 	  end
@@ -221,7 +221,7 @@ function SWEP:PreDrop()
 end
 
 function SWEP:OnRemove()
-   if CLIENT and ValidEntity(self.Owner) and self.Owner == LocalPlayer() and self.Owner:Alive() then
+   if CLIENT and IsValid(self.Owner) and self.Owner == LocalPlayer() and self.Owner:Alive() then
       RunConsoleCommand("lastinv")
    end
 end

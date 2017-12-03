@@ -1,38 +1,41 @@
 ---- Communicating game state to players
 
-local umsg = umsg
+local net = net
 local string = string
 local table = table
 local pairs = pairs
+local IsValid = IsValid
 
 -- NOTE: most uses of the Msg functions here have been moved to the LANG
 -- functions. These functions are essentially deprecated, though they won't be
 -- removed and can safely be used by SWEPs and the like.
 
 function GameMsg(msg)
-   umsg.Start("game_msg")
-   umsg.String(msg)
-   umsg.Bool(false)
-   umsg.End()
+   net.Start("TTT_GameMsg")
+      net.WriteString(msg)
+      net.WriteBit(false)
+   net.Broadcast()
 end
 
-function CustomMsg(ply_or_rfilter, msg, clr)
+function CustomMsg(ply_or_rf, msg, clr)
    clr = clr or COLOR_WHITE
 
-   umsg.Start("game_msg_color", ply_or_rfilter)
-   umsg.String(msg)
-   umsg.Short(clr.r)
-   umsg.Short(clr.g)
-   umsg.Short(clr.b)
-   umsg.End()
+   net.Start("TTT_GameMsgColor")
+      net.WriteString(msg)
+      net.WriteUInt(clr.r, 8)
+      net.WriteUInt(clr.g, 8)
+      net.WriteUInt(clr.b, 8)
+   if ply_or_rf then net.Send(ply_or_rf)
+   else net.Broadcast() end
 end
 
 -- Basic status message to single player or a recipientfilter
-function PlayerMsg(ply_or_rfilter, msg, traitor_only)
-   umsg.Start("game_msg", ply_or_rfilter)
-   umsg.String(msg)
-   umsg.Bool(traitor_only)
-   umsg.End()
+function PlayerMsg(ply_or_rf, msg, traitor_only)
+   net.Start("TTT_GameMsg")
+      net.WriteString(msg)
+      net.WriteBit(traitor_only)
+   if ply_or_rf then net.Send(ply_or_rf)
+   else net.Broadcast() end
 end
 
 -- Traitor-specific message that will appear in a special color
@@ -42,102 +45,114 @@ end
 
 -- Traitorchat
 local function RoleChatMsg(sender, role, msg)
-   umsg.Start("role_chat", GetRoleFilter(role))
-   umsg.Char(role)
-   umsg.Entity(sender)
-   umsg.String(msg)
-   umsg.End()
+   net.Start("TTT_RoleChat")
+      net.WriteUInt(role, 2)
+      net.WriteEntity(sender)
+      net.WriteString(msg)
+   net.Send(GetRoleFilter(role))
 end
 
 
 -- Round start info popup
 function ShowRoundStartPopup()
    for k, v in pairs(player.GetAll()) do
-      if ValidEntity(v) and v:Team() == TEAM_TERROR and v:Alive() then
+      if IsValid(v) and v:Team() == TEAM_TERROR and v:Alive() then
          v:ConCommand("ttt_cl_startpopup")
       end
-   end   
+   end
 end
 
 local function GetPlayerFilter(pred)
-   local filter = RecipientFilter()
+   local filter = {}
    for k, v in pairs(player.GetAll()) do
-      if ValidEntity(v) and pred(v) then
-         filter:AddPlayer(v)
+      if IsValid(v) and pred(v) then
+         table.insert(filter, v)
       end
    end
    return filter
 end
 
 function GetTraitorFilter(alive_only)
-   return GetPlayerFilter(function(p) return p:GetTraitor() and (not alive_only or p:Alive()) end)
+   return GetPlayerFilter(function(p) return p:GetTraitor() and (not alive_only or p:IsTerror()) end)
 end
 
 function GetDetectiveFilter(alive_only)
-   return GetPlayerFilter(function(p) return p:IsDetective() and (not alive_only or p:Alive()) end)
+   return GetPlayerFilter(function(p) return p:IsDetective() and (not alive_only or p:IsTerror()) end)
 end
 
 function GetInnocentFilter(alive_only)
-   return GetPlayerFilter(function(p) return (not p:IsTraitor()) and (not alive_only or p:Alive()) end)
+   return GetPlayerFilter(function(p) return (not p:IsTraitor()) and (not alive_only or p:IsTerror()) end)
 end
 
 function GetRoleFilter(role, alive_only)
-   return GetPlayerFilter(function(p) return p:IsRole(role) and (not alive_only or p:Alive()) end)
+   return GetPlayerFilter(function(p) return p:IsRole(role) and (not alive_only or p:IsTerror()) end)
 end
 
 ---- Communication control
 CreateConVar("ttt_limit_spectator_chat", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY)
 CreateConVar("ttt_limit_spectator_voice", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY)
 
-local mumbles = {"mumble", "mm", "hmm", "hum", "mum", "mbm", "mble", "ham", "mammaries", "political situation", "mrmm", "hrm", "uzbekistan", "mumu", "cheese export", "hmhm", "mmh", "mumble", "mphrrt", "mrh", "hmm", "mumble", "mbmm", "hmml", "mfrrm"}
+function GM:PlayerCanSeePlayersChat(text, team_only, listener, speaker)
+	if (not IsValid(listener)) then return false end
+	if (not IsValid(speaker)) then
+		if isentity(speaker) then
+			return true
+		else
+			return false
+		end
+	end
+
+	local sTeam = speaker:Team() == TEAM_SPEC
+	local lTeam = listener:Team() == TEAM_SPEC
+
+	if (GetRoundState() != ROUND_ACTIVE) or   -- Round isn't active
+	(not GetConVar("ttt_limit_spectator_chat"):GetBool()) or   -- Spectators can chat freely
+	(not DetectiveMode()) or   -- Mumbling
+	(not sTeam and ((team_only and not speaker:IsSpecial()) or (not team_only))) or   -- If someone alive talks (and not a special role in teamchat's case)
+	(not sTeam and team_only and speaker:GetRole() == listener:GetRole()) or
+	(sTeam and lTeam) then   -- If the speaker and listener are spectators
+	   return true
+	end
+
+	return false
+end
+
+local mumbles = {"mumble", "mm", "hmm", "hum", "mum", "mbm", "mble", "ham", "mammaries", "political situation", "mrmm", "hrm",
+"uzbekistan", "mumu", "cheese export", "hmhm", "mmh", "mumble", "mphrrt", "mrh", "hmm", "mumble", "mbmm", "hmml", "mfrrm"}
 
 -- While a round is active, spectators can only talk among themselves. When they
 -- try to speak to all players they could divulge information about who killed
 -- them. So we mumblify them. In detective mode, we shut them up entirely.
-function GM:PlayerSay(ply, text, to_all)
-   if not ValidEntity(ply) then return end
+function GM:PlayerSay(ply, text, team_only)
+   if not IsValid(ply) then return text or "" end
 
-   if not to_all and ply:Team() != TEAM_SPEC and GetRoundState() == ROUND_ACTIVE then
-      if ply:IsSpecial() then
-         -- traitor chat handling
-         RoleChatMsg(ply, ply:GetRole(), text)
-      else
-         LANG.Msg(ply, "inno_globalchat_hint")
-      end
-
-      return ""
-   end
-
-   if to_all and GetRoundState() == ROUND_ACTIVE and ply:Team() == TEAM_SPEC then
-      if DetectiveMode() then
-         LANG.Msg(ply, "spec_teamchat_hint")
-         return ""
-      end
-
-      if not GetConVar("ttt_limit_spectator_chat"):GetBool() then
-         return
-      end
-
-      local filtered = {}
-      for k, v in pairs(string.Explode(" ", text)) do
-         -- grab word characters and whitelisted interpunction
-         -- necessary or leetspeek will be used (by trolls especially)
-         local word, interp = string.match(v, "(%a*)([%.,;!%?]*)")
-         if word != "" then
-            table.insert(filtered, mumbles[math.random(1, #mumbles)] .. interp)
+   if GetRoundState() == ROUND_ACTIVE then
+      local team = ply:Team() == TEAM_SPEC
+      if team and not DetectiveMode() then
+         local filtered = {}
+         for k, v in pairs(string.Explode(" ", text)) do
+            -- grab word characters and whitelisted interpunction
+            -- necessary or leetspeek will be used (by trolls especially)
+            local word, interp = string.match(v, "(%a*)([%.,;!%?]*)")
+            if word != "" then
+               table.insert(filtered, mumbles[math.random(1, #mumbles)] .. interp)
+            end
          end
-      end
 
-      -- make sure we have something to say
-      if table.Count(filtered) < 1 then
-         table.insert(filtered, mumbles[math.random(1, #mumbles)])
-      end
+         -- make sure we have something to say
+         if table.Count(filtered) < 1 then
+            table.insert(filtered, mumbles[math.random(1, #mumbles)])
+         end
 
-      table.insert( filtered, 1, "[MUMBLED]")
-      return table.concat(filtered, " ")
+         table.insert(filtered, 1, "[MUMBLED]")
+         return table.concat(filtered, " ")
+      elseif team_only and not team and ply:IsSpecial() then
+	     RoleChatMsg(ply, ply:GetRole(), text)
+		 return ""
+      end
    end
 
-   return text
+   return text or ""
 end
 
 
@@ -174,9 +189,9 @@ function GM:PlayerCanHearPlayersVoice( listener, speaker )
    if speaker:IsSpec() and (not listener:IsSpec()) and limit and GetRoundState() == ROUND_ACTIVE then
       return false, false
    end
-   
+
    -- Specific mute
-   if listener:IsSpec() and listener.mute_team == speaker:Team() then
+   if listener:IsSpec() and listener.mute_team == speaker:Team() or listener.mute_team == MUTE_ALL then
       return false, false
    end
 
@@ -203,20 +218,22 @@ end
 local function SendTraitorVoiceState(speaker, state)
    -- send umsg to living traitors that this is traitor-only talk
    local rf = GetTraitorFilter(true)
-   
-   -- tiny umsg in the hope of it arriving asap
-   umsg.Start("tvo", rf)
-   umsg.Short(speaker:EntIndex())
-   umsg.Bool(state)
-   umsg.End()
+
+   -- make it as small as possible, to get there as fast as possible
+   -- we can fit it into a mere byte by being cheeky.
+   net.Start("TTT_TraitorVoiceState")
+      net.WriteUInt(speaker:EntIndex() - 1, 7) -- player ids can only be 1-128
+      net.WriteBit(state)
+   if rf then net.Send(rf)
+   else net.Broadcast() end
 end
 
 
 local function TraitorGlobalVoice(ply, cmd, args)
-   if not ValidEntity(ply) or not ply:IsActiveTraitor() then return end
-   if not #args == 1 then return end
+   if not IsValid(ply) or not ply:IsActiveTraitor() then return end
+   if #args != 1 then return end
    local state = tonumber(args[1])
-   
+
    ply.traitor_gvoice = (state == 1)
 
    SendTraitorVoiceState(ply, ply.traitor_gvoice)
@@ -224,8 +241,8 @@ end
 concommand.Add("tvog", TraitorGlobalVoice)
 
 local function MuteTeam(ply, cmd, args)
-   if not ValidEntity(ply) then return end
-   if not #args == 1 and tonumber(args[1]) then return end
+   if not IsValid(ply) then return end
+   if not (#args == 1 and tonumber(args[1])) then return end
    if not ply:IsSpec() then
       ply.mute_team = -1
       return
@@ -234,8 +251,13 @@ local function MuteTeam(ply, cmd, args)
    local t = tonumber(args[1])
    ply.mute_team = t
 
-   local name = (t != 0) and team.GetName(t) or "None"
-   ply:ChatPrint(name .. " muted.")
+   if t == MUTE_ALL then
+      ply:ChatPrint("All muted.")
+   elseif t == MUTE_NONE or t == TEAM_UNASSIGNED or not team.Valid(t) then
+      ply:ChatPrint("None muted.")
+   else
+      ply:ChatPrint(team.GetName(t) .. " muted.")
+   end
 end
 concommand.Add("ttt_mute_team", MuteTeam)
 
@@ -250,19 +272,19 @@ local LastWordContext = {
 
 local function LastWordsMsg(ply, words)
    -- only append "--" if there's no ending interpunction
-   local final = string.match(words, "[\.\!\?]$") != nil
+   local final = string.match(words, "[\\.\\!\\?]$") != nil
 
    -- add optional context relating to death type
    local context = LastWordContext[ply.death_type] or ""
 
-   umsg.Start("lastwords_msg")
-   umsg.Entity(ply)
-   umsg.String(words .. (final and "" or "--") .. context)
-   umsg.End()
+   net.Start("TTT_LastWordsMsg")
+      net.WriteEntity(ply)
+      net.WriteString(words .. (final and "" or "--") .. context)
+   net.Broadcast()
 end
 
 local function LastWords(ply, cmd, args)
-   if ValidEntity(ply) and (not ply:Alive()) and #args > 1 then
+   if IsValid(ply) and (not ply:Alive()) and #args > 1 then
       local id = tonumber(args[1])
       if id and ply.last_words_id and id == ply.last_words_id then
          -- never allow multiple last word stuff
@@ -289,6 +311,11 @@ local function LastWords(ply, cmd, args)
          -- nothing of interest
          //if string.len(words) < 2 then return end
 
+         -- ignore admin commands
+         local firstchar = string.sub(words, 1, 1)
+         if firstchar == "!" or firstchar == "@" or firstchar == "/" then return end
+
+
          if ttt_lastwords:GetBool() or ply.death_type == KILL_FALL then
             LastWordsMsg(ply, words)
          end
@@ -306,6 +333,8 @@ concommand.Add("_deathrec", LastWords)
 -- Override or hook in plugin for spam prevention and whatnot. Return true
 -- to block a command.
 function GM:TTTPlayerRadioCommand(ply, msg_name, msg_target)
+   if ply.LastRadioCommand and ply.LastRadioCommand > (CurTime() - 0.5) then return true end
+   ply.LastRadioCommand = CurTime()
 end
 
 local function RadioCommand(ply, cmd, args)
@@ -338,16 +367,14 @@ local function RadioCommand(ply, cmd, args)
          return
       end
 
-      umsg.Start("ttt_radio_msg")
-      umsg.Entity(ply)
-      umsg.String(msg_name)
-      umsg.String(name)
-
-      -- special case for id'd ragdolls, kind of ugly
-      if rag_name then
-         umsg.String(rag_name)
-      end
-      umsg.End()
+      net.Start("TTT_RadioMsg")
+         net.WriteEntity(ply)
+         net.WriteString(msg_name)
+         net.WriteString(name)
+         if rag_name then
+            net.WriteString(rag_name)
+         end
+      net.Broadcast()
    end
 end
 concommand.Add("_ttt_radio_send", RadioCommand)
