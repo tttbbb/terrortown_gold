@@ -126,8 +126,8 @@ function GM:PlayerSpawn(ply)
 end
 
 function GM:IsSpawnpointSuitable(ply, spwn, force, rigged)
-   if not ValidEntity(ply) or not ply:IsTerror() then return true end
-   if not rigged and (not ValidEntity(spwn) or not spwn:IsInWorld()) then return false end
+   if not IsValid(ply) or not ply:IsTerror() then return true end
+   if not rigged and (not IsValid(spwn) or not spwn:IsInWorld()) then return false end
 
    -- spwn is normally an ent, but we sometimes use a vector for jury rigged
    -- positions
@@ -138,7 +138,7 @@ function GM:IsSpawnpointSuitable(ply, spwn, force, rigged)
    local blocking = ents.FindInBox(pos + Vector( -16, -16, 0 ), pos + Vector( 16, 16, 64 ))
 
    for k, p in pairs(blocking) do
-      if ValidEntity(p) and p:IsPlayer() and p:IsTerror() and p:Alive() then
+      if IsValid(p) and p:IsPlayer() and p:IsTerror() and p:Alive() then
          if force then
             p:Kill()
          else
@@ -159,7 +159,7 @@ function GetSpawnEnts(shuffled, force_all)
    local tbl = {}
    for k, classname in pairs(SpawnTypes) do
       for _, e in pairs(ents.FindByClass(classname)) do
-         if ValidEntity(e) and (not e.BeingRemoved) then
+         if IsValid(e) and (not e.BeingRemoved) then
             table.insert(tbl, e)
          end
       end
@@ -171,7 +171,7 @@ function GetSpawnEnts(shuffled, force_all)
    -- spawn well. At all.
    if force_all or #tbl == 0 then
       for _, e in pairs(ents.FindByClass("info_player_start")) do
-         if ValidEntity(e) and (not e.BeingRemoved) then
+         if IsValid(e) and (not e.BeingRemoved) then
             table.insert(tbl, e)
          end
       end
@@ -186,7 +186,7 @@ end
 
 -- Generate points next to and above the spawn that we can test for suitability
 local function PointsAroundSpawn(spwn)
-   if not ValidEntity(spwn) then return {} end
+   if not IsValid(spwn) then return {} end
    local pos = spwn:GetPos()
 
    local w, h = 36, 72 -- bit roomier than player hull
@@ -247,7 +247,7 @@ function GM:PlayerSelectSpawn(ply)
       for _, rig in pairs(rigged) do
          if self:IsSpawnpointSuitable(ply, rig, false, true) then
             local rig_spwn = ents.Create("info_player_terrorist")
-            if ValidEntity(rig_spwn) then
+            if IsValid(rig_spwn) then
                rig_spwn:SetPos(rig)
                rig_spwn:Spawn()
 
@@ -284,7 +284,7 @@ function GM:CanPlayerSuicide(ply)
 end
 
 function GM:PlayerSwitchFlashlight(ply, on)
-   if not ValidEntity(ply) then return false end
+   if not IsValid(ply) then return false end
 
    -- add the flashlight "effect" here, and then deny the switch
    -- this prevents the sound from playing, fixing the exploit
@@ -316,7 +316,7 @@ end
 datastream.Hook( "WheelHook", WheelHook );
 
 function GM:KeyPress(ply, key)
-   if not ValidEntity(ply) then return end
+   if not IsValid(ply) then return end
 
    -- Spectator keys
    if ply:IsSpec() and not ply:GetRagdollSpec() then
@@ -344,7 +344,7 @@ function GM:KeyPress(ply, key)
          if #alive < 1 then return end
 
          local target = table.Random(alive)
-         if ValidEntity(target) then
+         if IsValid(target) then
             ply:SetPos(target:EyePos())
          end
       elseif key == IN_ATTACK2 then
@@ -352,7 +352,7 @@ function GM:KeyPress(ply, key)
          -- spectate either the next guy or a random guy in chase
          local target = util.GetNextAlivePlayer(ply:GetObserverTarget())
 
-         if ValidEntity(target) then
+         if IsValid(target) then
             ply:Spectate(ply.spec_mode or OBS_MODE_CHASE)
             ply:SpectateEntity(target)
          end
@@ -364,7 +364,7 @@ function GM:KeyPress(ply, key)
          local ang = ply:EyeAngles()
 
          local target = ply:GetObserverTarget()
-         if ValidEntity(target) and target:IsPlayer() then
+         if IsValid(target) and target:IsPlayer() then
             pos = target:EyePos()
             ang = target:EyeAngles()
          end
@@ -400,7 +400,7 @@ end
 
 
 function GM:KeyRelease(ply, key)
-   if key == IN_USE and ValidEntity(ply) and ply:IsTerror() then
+   if key == IN_USE and IsValid(ply) and ply:IsTerror() then
       -- see if we need to do some custom usekey overriding
       local tr = util.TraceLine({
          start  = ply:GetShootPos(),
@@ -409,10 +409,10 @@ function GM:KeyRelease(ply, key)
          mask   = MASK_SHOT
       });
 
-      if tr.Hit and ValidEntity(tr.Entity) then
+      if tr.Hit and IsValid(tr.Entity) then
          if tr.Entity.CanUseKey and tr.Entity.UseOverride then
             local phys = tr.Entity:GetPhysicsObject()
-            if ValidEntity(phys) and not phys:HasGameFlag(FVPHYSICS_PLAYER_HELD) then
+            if IsValid(phys) and not phys:HasGameFlag(FVPHYSICS_PLAYER_HELD) then
                tr.Entity:UseOverride(ply)
                return true
             else
@@ -432,10 +432,10 @@ end
 -- can't let them search bodies. This sucks because searching bodies is
 -- fun. Hence on the client we override +use for specs and use this instead.
 local function SpecUseKey(ply, cmd, arg)
-   if ValidEntity(ply) and ply:IsSpec() then
+   if IsValid(ply) and ply:IsSpec() then
       -- longer range than normal use
       local tr = util.QuickTrace(ply:GetShootPos(), ply:GetAimVector() * 256, ply)
-      if tr.Hit and ValidEntity(tr.Entity) then
+      if tr.Hit and IsValid(tr.Entity) then
          if tr.Entity.player_ragdoll && !IsTTTAdmin(ply) then
             if not ply:KeyDown(IN_WALK) then
                CORPSE.ShowSearch(ply, tr.Entity)
@@ -470,7 +470,7 @@ local function SpecUseKey(ply, cmd, arg)
 		end
 		
 		//ErrorNoHalt(Format("Target %s dist %i to ply %i",v:GetClass(),dist, distToPly)) 
-		if (ourtargent != -1 && ValidEntity(ourtargent)) then 
+		if (ourtargent != -1 && IsValid(ourtargent)) then 
 			//ErrorNoHalt(Format("Picking %s, %i",ourtargent:GetClass(),ourtargdist)) 
 			PROPSPEC_A.Target(ply, ourtargent,1)
 		end		
@@ -546,7 +546,7 @@ local deathsounds = {
 
 
 local function PlayDeathSound(victim)
-   if not ValidEntity(victim) then return end
+   if not IsValid(victim) then return end
 
    WorldSound(table.Random(deathsounds), victim:GetShootPos(), 90, 100)
 end
@@ -622,7 +622,7 @@ function GM:DoPlayerDeath(ply, attacker, dmginfo)
    -- Experimental: Fire a last shot if ironsighting and not headshot
    if GetConVar("ttt_dyingshot"):GetBool() then
       local wep = ply:GetActiveWeapon()
-      if ValidEntity(wep) and wep.DyingShot and not ply.was_headshot and dmginfo:IsBulletDamage() then
+      if IsValid(wep) and wep.DyingShot and not ply.was_headshot and dmginfo:IsBulletDamage() then
          local fired = wep:DyingShot()
          if fired then
             return
@@ -657,7 +657,7 @@ function GM:DoPlayerDeath(ply, attacker, dmginfo)
    if GetRoundState() == ROUND_ACTIVE then
       SCORE:HandleKill(ply, attacker, dmginfo)
 
-      if ValidEntity(attacker) and attacker:IsPlayer() then
+      if IsValid(attacker) and attacker:IsPlayer() then
          attacker:RecordKill(ply)
 
          DamageLog(Format("KILL:\t %s [%s] killed %s [%s]", attacker:Nick(), attacker:GetRoleString(), ply:Nick(), ply:GetRoleString()))
@@ -947,11 +947,11 @@ end
 
 -- No damage during prep, etc
 function GM:EntityTakeDamage(ent, infl, att, amount, dmginfo)
-   if not ValidEntity(ent) then return end
+   if not IsValid(ent) then return end
 
    if not GAMEMODE:AllowPVP() then
       -- if player vs player damage, or if damage versus a prop, then zero
-      if (ent:IsExplosive() or (ent:IsPlayer() and ValidEntity(att) and att:IsPlayer())) then
+      if (ent:IsExplosive() or (ent:IsPlayer() and IsValid(att) and att:IsPlayer())) then
          dmginfo:ScaleDamage(0)
          dmginfo:SetDamage(0)
       end
@@ -1073,7 +1073,7 @@ function GM:PlayerTakeDamage(ent, infl, att, amount, dmginfo)
          dmginfo:ScaleDamage(0.25)
 
          -- if the prop is held, no damage
-         if ValidEntity(infl) and ValidEntity(infl:GetOwner()) and infl:GetOwner():IsPlayer() then
+         if IsValid(infl) and IsValid(infl:GetOwner()) and infl:GetOwner():IsPlayer() then
             dmginfo:ScaleDamage(0)
             dmginfo:SetDamage(0)
          end
@@ -1190,7 +1190,7 @@ function GM:Tick()
 
          -- Slow down ironsighters
          local wep = ply:GetActiveWeapon()
-         if ValidEntity(wep) and wep:GetIronsights() then
+         if IsValid(wep) and wep:GetIronsights() then
             ply:SetSpeed(true)
          else
             ply:SetSpeed(false)
@@ -1219,7 +1219,7 @@ function GM:Tick()
 end
 
 function GM:ShowHelp(ply)
-   if ValidEntity(ply) then
+   if IsValid(ply) then
       ply:ConCommand("ttt_helpscreen")
    end
 end

@@ -45,7 +45,7 @@ function ENT:Initialize()
 end
 
 function ENT:UseOverride(activator)
-   if ValidEntity(activator) and activator:IsPlayer() and activator:IsActiveTraitor() then
+   if IsValid(activator) and activator:IsPlayer() and activator:IsActiveTraitor() then
       local prints = self.fingerprints or {}
       self:Remove()
 

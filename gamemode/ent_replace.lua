@@ -107,7 +107,7 @@ end
 -- Exposed because it's also done at BeginRound
 function ents.TTT.RemoveRagdolls(player_only)
    for k, ent in pairs(ents.FindByClass("prop_ragdoll")) do
-      if ValidEntity(ent) then
+      if IsValid(ent) then
          if not player_only and string.find(ent:GetModel(), "zm_", 6, true) then
             ent:Remove()
          elseif ent.player_ragdoll then

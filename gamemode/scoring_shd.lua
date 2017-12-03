@@ -193,7 +193,7 @@ end
 
 -- something cheap to send over the network
 function WepToEnum(wep)
-   if not ValidEntity(wep) then return end
+   if not IsValid(wep) then return end
 
    return wep.WeaponID
 end

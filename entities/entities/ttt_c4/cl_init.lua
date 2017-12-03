@@ -326,7 +326,7 @@ function ShowC4Disarm(bomb)
    dtimer.Stop = false
 
    dtimer.Think = function(s)
-                     if not ValidEntity(bomb) then return end
+                     if not IsValid(bomb) then return end
                      if s.Stop then return end
 
                      local t = bomb:GetExplodeTime()
@@ -453,7 +453,7 @@ local function C4ConfigHook(um)
    local idx = um:ReadShort()
    
    local bomb = ents.GetByIndex(idx)
-   if ValidEntity(bomb) then
+   if IsValid(bomb) then
       if not bomb:GetArmed() then
          ShowC4Config(bomb)
       else
@@ -470,7 +470,7 @@ local function C4DisarmResultHook(um)
    local correct = um:ReadBool()
 
    local bomb = ents.GetByIndex(idx)
-   if ValidEntity(bomb) then
+   if IsValid(bomb) then
       if correct and disarm_success then
          disarm_success()
       elseif disarm_fail then

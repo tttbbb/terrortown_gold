@@ -109,7 +109,7 @@ function SWEP:PrimaryAttack(worldsnd)
    self:TakePrimaryAmmo( 1 )
 
    local owner = self.Owner   
-   if not ValidEntity(owner) or owner:IsNPC() or (not owner.ViewPunch) then return end
+   if not IsValid(owner) or owner:IsNPC() or (not owner.ViewPunch) then return end
    
    owner:ViewPunch( Angle( math.Rand(-0.2,-0.1) * self.Primary.Recoil, math.Rand(-0.1,0.1) *self.Primary.Recoil, 0 ) )
 end

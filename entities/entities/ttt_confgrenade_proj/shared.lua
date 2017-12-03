@@ -16,7 +16,7 @@ local function PushPullRadius(pos, pusher)
 
    -- pull physics objects and push players
    for k, target in pairs(ents.FindInSphere(pos, radius)) do
-      if ValidEntity(target) then
+      if IsValid(target) then
          local tpos = target:LocalToWorld(target:OBBCenter())
          local dir = (tpos - pos):GetNormal()
          local phys = target:GetPhysicsObject()
@@ -43,7 +43,7 @@ local function PushPullRadius(pos, pusher)
 
             target.was_pushed = {att=pusher, t=CurTime()}
 
-         elseif ValidEntity(phys) then
+         elseif IsValid(phys) then
             phys:ApplyForceCenter(dir * -1 * phys_force)
          end
       end

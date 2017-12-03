@@ -205,7 +205,7 @@ local function TraitorMenuPopup()
    -- Determine if we already have equipment
    local owned_ids = {}
    for _, wep in pairs(ply:GetWeapons()) do
-      if ValidEntity(wep) and wep:IsEquipment() then
+      if IsValid(wep) and wep:IsEquipment() then
          table.insert(owned_ids, wep:GetClass())
       end
    end
@@ -465,7 +465,7 @@ end
 
 local function ReceiveEquipment(um)
    local ply = LocalPlayer()
-   if not ValidEntity(ply) then return end
+   if not IsValid(ply) then return end
 
    ply.equipment_items = um:ReadShort()
 end
@@ -473,7 +473,7 @@ usermessage.Hook("equipment", ReceiveEquipment)
 
 local function ReceiveCredits(um)
    local ply = LocalPlayer()
-   if not ValidEntity(ply) then return end
+   if not IsValid(ply) then return end
 
    ply.equipment_credits = um:ReadChar()
 end
@@ -482,7 +482,7 @@ usermessage.Hook("credits", ReceiveCredits)
 local r = 0
 local function ReceiveBought(um)
    local ply = LocalPlayer()
-   if not ValidEntity(ply) then return end
+   if not IsValid(ply) then return end
 
    ply.bought = {}
    local num = um:ReadShort()

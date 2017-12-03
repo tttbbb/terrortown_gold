@@ -13,7 +13,7 @@ function GM:OnSpawnMenuOpen()
 end
 
 function GM:PlayerBindPress(ply, bind, pressed)
-   if not ValidEntity(ply) then return end
+   if not IsValid(ply) then return end
 
    if bind == "invnext" and pressed then
       if ply:IsSpec() then
@@ -120,7 +120,7 @@ end
 -- for the same key event in multiplayer.
 function GM:KeyPress(ply, key)
    if not IsFirstTimePredicted() then return end
-   if not ValidEntity(ply) or ply != LocalPlayer() then return end
+   if not IsValid(ply) or ply != LocalPlayer() then return end
 
    if key == IN_SPEED and ply:IsActiveTraitor() then
       timer.Simple(0.05, RunConsoleCommand, "+voicerecord")
@@ -129,7 +129,7 @@ end
 
 function GM:KeyRelease(ply, key)
    if not IsFirstTimePredicted() then return end
-   if not ValidEntity(ply) or ply != LocalPlayer() then return end
+   if not IsValid(ply) or ply != LocalPlayer() then return end
 
    if key == IN_SPEED and ply:IsActiveTraitor() then
       timer.Simple(0.05, RunConsoleCommand, "-voicerecord")

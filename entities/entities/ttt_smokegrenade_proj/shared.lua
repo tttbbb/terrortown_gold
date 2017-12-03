@@ -75,7 +75,7 @@ function ENT:Explode(tr)
       local pos = self:GetPos()
 	  
 	for k, target in pairs(ents.FindInSphere(pos, 350)) do
-		if ValidEntity(target) then
+		if IsValid(target) then
 			if target:IsPlayer() && target:Alive() && !target:IsSpec() then
 			
 				target:SetMaterial("jim/meat");

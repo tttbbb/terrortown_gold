@@ -145,7 +145,7 @@ function PROPSPEC_A.Target(ply, ent, nearest)
    //if (not ent.Allowpropspec) and (not IsWhitelistedClass(ent:GetClass())) then return end
    
     //local phys = ent:GetPhysicsObject()
-    //if (not ValidEntity(phys)) or (not phys:IsMoveable()) then
+    //if (not IsValid(phys)) or (not phys:IsMoveable()) then
 	//	ply:ChatPrint(Format("PropSpec: Attempted to control %s, but no phys data.",ent:GetClass())) 
     //end
    
@@ -204,7 +204,7 @@ function PROPSPEC_A.Key_Door(ply,key)
    if key == IN_RELOAD && ent:GetClass() == "prop_door_rotating" then
 		local door = ents.Create("prop_physics")
 		local doorname = ent:GetName()
-		if not ValidEntity(door) then return nil end
+		if not IsValid(door) then return nil end
 		
 		door:SetPos(ent:GetPos())
 		door:SetModel(ent:GetModel())

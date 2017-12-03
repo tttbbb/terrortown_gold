@@ -958,7 +958,7 @@ concommand.Add("ttt_roundrestart", ForceRoundRestart)
 -- Version announce also used in Initialize
 function ShowVersion(ply)
    local text = Format("This is TTT version %s\n", GAMEMODE.Version)
-   if ValidEntity(ply) then
+   if IsValid(ply) then
       ply:PrintMessage(HUD_PRINTNOTIFY, text)
    else
       Msg(text)
@@ -971,7 +971,7 @@ function AnnounceVersion()
 
    -- announce to players
    for k, ply in pairs(player.GetAll()) do
-      if ValidEntity(ply) then
+      if IsValid(ply) then
          ply:PrintMessage(HUD_PRINTTALK, text)
       end
    end

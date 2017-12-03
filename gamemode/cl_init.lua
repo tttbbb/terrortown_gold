@@ -195,7 +195,7 @@ local function ReceiveRoleList(um)
       local eidx = um:ReadShort()
 
       local ply = player.GetByID(eidx)
-      if ValidEntity(ply) and ply.SetRole then
+      if IsValid(ply) and ply.SetRole then
          ply:SetRole(role)
 
          if ply:IsTraitor() then
@@ -260,7 +260,7 @@ function GM:CleanUpMap()
    -- Ragdolls sometimes stay around on clients. Deleting them can create issues
    -- so all we can do is try to hide them.
    for _, ent in pairs(ents.FindByClass("prop_ragdoll")) do
-      if ValidEntity(ent) and CORPSE.GetPlayerNick(ent, "") != "" then
+      if IsValid(ent) and CORPSE.GetPlayerNick(ent, "") != "" then
          ent:SetNoDraw(true)
          ent:SetSolid(SOLID_NONE)
          ent:SetColor(0,0,0,0)

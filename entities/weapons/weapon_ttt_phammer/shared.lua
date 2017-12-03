@@ -56,7 +56,7 @@ local math = math
 -- Returns if an entity is a valid physhammer punching target. Does not take
 -- distance into account.
 local function ValidTarget(ent)
-   return ValidEntity(ent) and ent:GetMoveType() == MOVETYPE_VPHYSICS and ent:GetPhysicsObject() and (not ent:IsWeapon()) and (not ent:GetNWBool("punched", false)) and (not ent:IsPlayer())
+   return IsValid(ent) and ent:GetMoveType() == MOVETYPE_VPHYSICS and ent:GetPhysicsObject() and (not ent:IsWeapon()) and (not ent:GetNWBool("punched", false)) and (not ent:IsPlayer())
    -- NOTE: cannot check for motion disabled on client
 end
 
@@ -69,7 +69,7 @@ function SWEP:Initialize()
    if CLIENT then
       -- create ghosted indicator
       local ghost = ents.Create("prop_physics") --the only prop with a factory?
-      if ValidEntity(ghost) then
+      if IsValid(ghost) then
          ghost:SetModel(ghostmdl)
          ghost:SetPos(self:GetPos())
          ghost:Spawn()
@@ -104,7 +104,7 @@ function SWEP:PreDrop()
 end
 
 function SWEP:HideGhost()
-   if ValidEntity(self.Ghost) then
+   if IsValid(self.Ghost) then
       self.Ghost:SetNoDraw(true)
    end
 end
@@ -117,7 +117,7 @@ function SWEP:PrimaryAttack()
       if self.IsCharging then return end
 
       local ply = self.Owner
-      if not ValidEntity(ply) then return end
+      if not IsValid(ply) then return end
 
       local tr = util.TraceLine({start=ply:GetShootPos(), endpos=ply:GetShootPos() + ply:GetAimVector() * maxrange, filter={ply, self.Entity}, mask=MASK_SOLID})
       
@@ -143,7 +143,7 @@ function SWEP:SecondaryAttack()
 
    if SERVER then
       local ply = self.Owner
-      if not ValidEntity(ply) then return end
+      if not IsValid(ply) then return end
 
       local range = 30000
 
@@ -162,7 +162,7 @@ end
 
 function SWEP:CreateHammer(tgt, pos)
    local hammer = ents.Create("ttt_physhammer")
-   if ValidEntity(hammer) then
+   if IsValid(hammer) then
       local ang = self.Owner:GetAimVector():Angle()
       ang:RotateAroundAxis(ang:Right(), 90)
 
@@ -180,7 +180,7 @@ function SWEP:CreateHammer(tgt, pos)
 end
 
 function SWEP:OnRemove()
-   if CLIENT and ValidEntity(self.Ghost) then
+   if CLIENT and IsValid(self.Ghost) then
       self.Ghost:Remove()
    end
 
@@ -189,7 +189,7 @@ function SWEP:OnRemove()
 end
 
 function SWEP:Holster()
-   if CLIENT and ValidEntity(self.Ghost) then
+   if CLIENT and IsValid(self.Ghost) then
       self.Ghost:SetNoDraw(true)
    end
 
@@ -253,7 +253,7 @@ if CLIENT then
    local surface = surface
 
    function SWEP:UpdateGhost(pos, c, a)
-      if ValidEntity(self.Ghost) then
+      if IsValid(self.Ghost) then
          if self.Ghost:GetPos() != pos then
             self.Ghost:SetPos(pos)
             local ang = LocalPlayer():GetAimVector():Angle()
@@ -274,7 +274,7 @@ if CLIENT then
    function SWEP:ViewModelDrawn()
       local client = LocalPlayer()
       local vm = client:GetViewModel()
-      if not ValidEntity(vm) then return end
+      if not IsValid(vm) then return end
 
       local plytr = client:GetEyeTrace(MASK_SHOT)
 

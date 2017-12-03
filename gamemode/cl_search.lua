@@ -253,7 +253,7 @@ end
 
 local function ShowSearchScreen(search_raw)
    local client = LocalPlayer()
-   if not ValidEntity(client) then return end
+   if not IsValid(client) then return end
 
    local m = 8
    local bw, bh = 100, 25

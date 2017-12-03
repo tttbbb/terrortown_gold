@@ -88,7 +88,7 @@ local function ColorForPlayer(ply)
 end
 
 function PANEL:Paint()
-   if not ValidEntity(self.Player) then return end
+   if not IsValid(self.Player) then return end
    
 --   if ( self.Player:GetFriendStatus() == "friend" ) then
 --      color = Color( 236, 181, 113, 255 )	

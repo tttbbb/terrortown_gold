@@ -17,7 +17,7 @@ function CORPSE.SetPlayerNick(rag, ply_or_name)
    -- don't have datatable strings, so use a dt entity for common case of
    -- still-connected player, and if the player is gone, fall back to nw string
    local name = ply_or_name
-   if ValidEntity(ply_or_name) then
+   if IsValid(ply_or_name) then
       name = ply_or_name:Nick()
       rag:SetDTEntity(dti.ENT_PLAYER, ply_or_name)
    end
@@ -94,7 +94,7 @@ local function IdentifyBody(ply, rag)
       local vic = player.GetByUniqueID(vicid)
 
       -- is this an unconfirmed dead?
-      if ValidEntity(vic) and (not vic:GetNWBool("body_found", false)) then
+      if IsValid(vic) and (not vic:GetNWBool("body_found", false)) then
          LANG.Msg("body_confirm", {finder = finder, victim = vic:Nick()})
 
          -- update scoreboard status
@@ -110,7 +110,7 @@ end
 
 -- Covert identify concommand for traitors
 local function IdentifyCommand(ply, cmd, args)
-   if not ValidEntity(ply) then return end
+   if not IsValid(ply) then return end
    if #args != 2 then return end
    
    local eidx = tonumber(args[1])
@@ -126,7 +126,7 @@ local function IdentifyCommand(ply, cmd, args)
    ply.search_id = nil
 
    local rag = Entity(eidx)
-   if ValidEntity(rag) and rag:GetPos():Distance(ply:GetPos()) < 128 then
+   if IsValid(rag) and rag:GetPos():Distance(ply:GetPos()) < 128 then
       if not CORPSE.GetFound(rag, false) then
          IdentifyBody(ply, rag)
       end
@@ -161,7 +161,7 @@ concommand.Add("ttt_call_detective", CallDetective)
 
 -- Send a usermessage to client containing search results
 function CORPSE.ShowSearch(ply, rag, covert, long_range)
-   if not ValidEntity(ply) or not ValidEntity(rag) then return end
+   if not IsValid(ply) or not IsValid(rag) then return end
 
    if rag:IsOnFire() then
       LANG.Msg(ply, "body_burning")
@@ -354,7 +354,7 @@ end
 local rag_collide = CreateConVar("ttt_ragdoll_collide", "0")
 
 function removeParticle(ent)
-	if ValidEntity(ent) then 
+	if IsValid(ent) then 
 		ent:Remove()
 	end
 end
@@ -374,7 +374,7 @@ function CORPSE.Create(ply, attacker, dmginfo)
 		local i = 0;
 		while i < 30 do
 			local dildo = ents.Create("prop_physics")
-			if not ValidEntity(dildo) then return nil end
+			if not IsValid(dildo) then return nil end
 
 			dildo:SetPos(ply:GetPos()+Vector(0,0,32))
 			dildo:SetModel("models/jaanus/dildo.mdl")
@@ -394,7 +394,7 @@ function CORPSE.Create(ply, attacker, dmginfo)
 		SetGlobalInt("jim_diedpins", GetGlobalInt( "jim_diedpins" )+1)
 	
 		local rag = ents.Create("prop_physics")
-		  if not ValidEntity(rag) then return nil end
+		  if not IsValid(rag) then return nil end
 		  
 		  rag:SetPos(ply:GetPos())
 		  rag:SetModel(ply:GetModel())
@@ -422,7 +422,7 @@ function CORPSE.Create(ply, attacker, dmginfo)
       if not IsValid(ply) then return end
 
       local rag = ents.Create("prop_ragdoll")
-      if not ValidEntity(rag) then return nil end
+      if not IsValid(rag) then return nil end
 	  
       rag:SetPos(ply:GetPos())
       rag:SetModel(ply:GetModel())
@@ -474,7 +474,7 @@ function CORPSE.Create(ply, attacker, dmginfo)
 
       for i=0, num do
          local bone = rag:GetPhysicsObjectNum(i)
-         if ValidEntity(bone) then
+         if IsValid(bone) then
             local bp, ba = ply:GetBonePosition(rag:TranslatePhysBoneToBone(i))
             if bp and ba then
                bone:SetPos(bp)

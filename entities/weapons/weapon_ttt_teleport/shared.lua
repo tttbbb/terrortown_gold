@@ -265,7 +265,7 @@ end
 
 function SWEP:TeleportRecall(ply)
    local ply = self.Owner
-   if ValidEntity(ply) and ply:IsTerror() then
+   if IsValid(ply) and ply:IsTerror() then
       local mark = self:GetTeleportMark()
       if mark then
          
@@ -304,7 +304,7 @@ end
 
 function SWEP:TeleportStore()
    local ply = self.Owner
-   if ValidEntity(ply) and ply:IsTerror() then
+   if IsValid(ply) and ply:IsTerror() then
 
       local allow, msg = CanStoreTeleportPos(ply, self:GetPos())
       if not allow then

@@ -54,7 +54,7 @@ function plymeta:GetBaseKarma() return self:GetNWFloat("karma", 1000) end
 
 function plymeta:HasEquipmentWeapon()
    for _, wep in pairs(self:GetWeapons()) do
-      if ValidEntity(wep) and wep:IsEquipment() then
+      if IsValid(wep) and wep:IsEquipment() then
          return true
       end
    end

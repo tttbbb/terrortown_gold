@@ -140,7 +140,7 @@ concommand.Add("ttt_force_detective", force_detective)
 
 
 local function force_spectate(ply, cmd, arg)
-   if ValidEntity(ply) then
+   if IsValid(ply) then
       if #arg == 1 and tonumber(arg[1]) == 0 then
          ply:SetForceSpec(false)
       else

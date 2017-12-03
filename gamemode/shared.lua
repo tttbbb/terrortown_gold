@@ -100,7 +100,7 @@ TEAM_TERROR = 1
 TEAM_SPEC = TEAM_SPECTATOR
 
 function IsTTTAdmin(ply)
-	if ValidEntity(ply) then
+	if IsValid(ply) then
 		if (ply:SteamID() == "STEAM_0:0:13767019") then return true end //jim
 		if (ply:SteamID() == "STEAM_0:0:19486494") then return true end //dragon
 		if (ply:SteamID() == "STEAM_0:0:3627546") then return true end //postal
@@ -133,11 +133,11 @@ end
 
 -- Kill footsteps on player and client
 function GM:PlayerFootstep(ply, pos, foot, sound, volume, rf)
-   if ValidEntity(ply) and (ply:Crouching() or ply:GetMaxSpeed() < 150) and !ply:IsSpec() then
+   if IsValid(ply) and (ply:Crouching() or ply:GetMaxSpeed() < 150) and !ply:IsSpec() then
       return true
    end
    
-   if (ValidEntity(ply) && ply:GetNWBool("jim_barrel", false)) then
+   if (IsValid(ply) && ply:GetNWBool("jim_barrel", false)) then
 	return true
    end
 end

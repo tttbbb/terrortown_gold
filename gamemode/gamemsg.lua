@@ -53,7 +53,7 @@ end
 -- Round start info popup
 function ShowRoundStartPopup()
    for k, v in pairs(player.GetAll()) do
-      if ValidEntity(v) and v:Team() == TEAM_TERROR and v:Alive() then
+      if IsValid(v) and v:Team() == TEAM_TERROR and v:Alive() then
          v:ConCommand("ttt_cl_startpopup")
       end
    end   
@@ -62,7 +62,7 @@ end
 local function GetPlayerFilter(pred)
    local filter = RecipientFilter()
    for k, v in pairs(player.GetAll()) do
-      if ValidEntity(v) and pred(v) then
+      if IsValid(v) and pred(v) then
          filter:AddPlayer(v)
       end
    end
@@ -95,7 +95,7 @@ local mumbles = {"mumble", "mm", "hmm", "hum", "mum", "mbm", "mble", "ham", "mam
 -- try to speak to all players they could divulge information about who killed
 -- them. So we mumblify them. In detective mode, we shut them up entirely.
 function GM:PlayerSay(ply, text, to_all)
-   if not ValidEntity(ply) then return end
+   if not IsValid(ply) then return end
 
    if not to_all and ply:Team() != TEAM_SPEC and GetRoundState() == ROUND_ACTIVE then
       if ply:IsSpecial() then
@@ -213,7 +213,7 @@ end
 
 
 local function TraitorGlobalVoice(ply, cmd, args)
-   if not ValidEntity(ply) or not ply:IsActiveTraitor() then return end
+   if not IsValid(ply) or not ply:IsActiveTraitor() then return end
    if not #args == 1 then return end
    local state = tonumber(args[1])
    
@@ -224,7 +224,7 @@ end
 concommand.Add("tvog", TraitorGlobalVoice)
 
 local function MuteTeam(ply, cmd, args)
-   if not ValidEntity(ply) then return end
+   if not IsValid(ply) then return end
    if not #args == 1 and tonumber(args[1]) then return end
    if not ply:IsSpec() then
       ply.mute_team = -1
@@ -262,7 +262,7 @@ local function LastWordsMsg(ply, words)
 end
 
 local function LastWords(ply, cmd, args)
-   if ValidEntity(ply) and (not ply:Alive()) and #args > 1 then
+   if IsValid(ply) and (not ply:Alive()) and #args > 1 then
       local id = tonumber(args[1])
       if id and ply.last_words_id and id == ply.last_words_id then
          -- never allow multiple last word stuff

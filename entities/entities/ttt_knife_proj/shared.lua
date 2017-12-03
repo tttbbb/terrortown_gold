@@ -90,7 +90,7 @@ function ENT:KillPlayer(other, tr)
 
    other.effect_fn = function(rag)
 
-                        if not ValidEntity(knife) or not ValidEntity(rag) then return end
+                        if not IsValid(knife) or not IsValid(rag) then return end
 
                         knife:SetPos(pos)
                         knife:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
@@ -129,7 +129,7 @@ if SERVER then
 
      local tr = util.TraceLine({start=self:GetPos(), endpos=self:GetPos() + vel:GetNormal() * 20, filter={self.Entity, self:GetOwner()}, mask=MASK_SHOT_HULL})
 
-     if tr.Hit and tr.HitNonWorld and ValidEntity(tr.Entity) then
+     if tr.Hit and tr.HitNonWorld and IsValid(tr.Entity) then
         local other = tr.Entity
         if other:IsPlayer() then
            self:HitPlayer(other, tr)
@@ -167,7 +167,7 @@ if SERVER then
       if self.Stuck then return false end
 
       local other = data.HitEntity
-      if not ValidEntity(other) and not other:IsWorld() then return end
+      if not IsValid(other) and not other:IsWorld() then return end
 
       if other:IsPlayer() then
          local tr = util.TraceLine({start=self:GetPos(), endpos=other:LocalToWorld(other:OBBCenter()), filter={self.Entity, self:GetOwner()}, mask=MASK_SHOT_HULL})

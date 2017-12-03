@@ -244,7 +244,7 @@ function SWEP:PrimaryAttack(worldsnd)
    self:TakePrimaryAmmo( 1 )
 
    local owner = self.Owner   
-   if not ValidEntity(owner) or owner:IsNPC() or (not owner.ViewPunch) then return end
+   if not IsValid(owner) or owner:IsNPC() or (not owner.ViewPunch) then return end
    
    owner:ViewPunch( Angle( math.Rand(-0.2,-0.1) * self.Primary.Recoil, math.Rand(-0.1,0.1) *self.Primary.Recoil, 0 ) )
 end
@@ -375,18 +375,18 @@ function SWEP:OnRestore()
 end
 
 function SWEP:Ammo1()
-   return ValidEntity(self.Owner) and self.Owner:GetAmmoCount(self.Primary.Ammo) or false
+   return IsValid(self.Owner) and self.Owner:GetAmmoCount(self.Primary.Ammo) or false
 end
 
 -- The OnDrop() hook is useless for this as it happens AFTER the drop. OwnerChange
 -- does not occur when a drop happens for some reason. Hence this thing.
 function SWEP:PreDrop()
-   if SERVER and ValidEntity(self.Owner) and self.Primary.Ammo != "none" then
+   if SERVER and IsValid(self.Owner) and self.Primary.Ammo != "none" then
       local ammo = self:Ammo1()
 
       -- Do not drop ammo if we have another gun that uses this type
       for _, w in pairs(self.Owner:GetWeapons()) do
-         if ValidEntity(w) and w != self and w:GetPrimaryAmmoType() == self:GetPrimaryAmmoType() then
+         if IsValid(w) and w != self and w:GetPrimaryAmmoType() == self:GetPrimaryAmmoType() then
             ammo = 0
          end
       end
@@ -425,7 +425,7 @@ function SWEP:Equip(newowner)
       end
    end
 
-   if SERVER and ValidEntity(newowner) and self.StoredAmmo > 0 and self.Primary.Ammo != "none" then
+   if SERVER and IsValid(newowner) and self.StoredAmmo > 0 and self.Primary.Ammo != "none" then
       local ammo = newowner:GetAmmoCount(self.Primary.Ammo)
       local given = math.min(self.StoredAmmo, self.Primary.ClipMax - ammo)
 
@@ -477,7 +477,7 @@ function SWEP:DyingShot()
       end
 
       -- Owner should still be alive here
-      if ValidEntity(self.Owner) then
+      if IsValid(self.Owner) then
          local punch = self.Primary.Recoil or 5
 
          -- Punch view to disorient aim before firing dying shot

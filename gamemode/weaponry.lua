@@ -14,7 +14,7 @@ local IsEquipment = WEPS.IsEquipment
 
 -- Prevent players from picking up multiple weapons of the same type etc
 function GM:PlayerCanPickupWeapon(ply, wep)
-   if not ValidEntity(wep) and not ValidEntity(ply) then return end
+   if not IsValid(wep) and not IsValid(ply) then return end
 
    if (ply.Gimped && wep:GetClass() != ply.Gimped) then return false end
    
@@ -143,7 +143,7 @@ end
 -- possible.
 local function LateLoadout(id)
    local ply = player.GetByID(id)
-   if not ValidEntity(ply) then 
+   if not IsValid(ply) then 
       timer.Destroy("lateloadout" .. id)
       return 
    end
@@ -191,7 +191,7 @@ local function ForceWeaponSwitch(ply, cmd, args)
    -- Works because no weapon uses those.
    local wepname = args[1]
    local wep = ply:GetWeapon(wepname)
-   if ValidEntity(wep) then
+   if IsValid(wep) then
       -- Weapons apparently not guaranteed to have this
       if wep.SetClip2 then
          wep:SetClip2(1)
@@ -204,7 +204,7 @@ concommand.Add("wepswitch", ForceWeaponSwitch)
 ---- Weapon dropping
 
 function WEPS.DropNotifiedWeapon(ply, wep, death_drop)
-   if ValidEntity(ply) and ValidEntity(wep) then
+   if IsValid(ply) and IsValid(wep) then
 		
 	  if (!wep.DropOnDeath) then 
 	  	wep:Remove()
@@ -235,11 +235,11 @@ function WEPS.DropNotifiedWeapon(ply, wep, death_drop)
 end
 
 local function DropActiveWeapon(ply)
-   if not ValidEntity(ply) then return end
+   if not IsValid(ply) then return end
 
    local wep = ply:GetActiveWeapon()
 
-   if not ValidEntity(wep) then return end
+   if not IsValid(wep) then return end
 
    if wep.AllowDrop == false then
       return
@@ -259,10 +259,10 @@ end
 concommand.Add("ttt_dropweapon", DropActiveWeapon)
 
 local function DropActiveAmmo(ply)
-   if not ValidEntity(ply) then return end
+   if not IsValid(ply) then return end
 
    local wep = ply:GetActiveWeapon()
-   if not ValidEntity(wep) then return end
+   if not IsValid(wep) then return end
 
    if not wep.AmmoEnt then return end
 
@@ -318,7 +318,7 @@ local function GiveEquipmentWeapon(uid, cls)
    local ply = player.GetByUniqueID(uid)
    local tmr = "give_equipment" .. tostring(uid)
 
-   if (not ValidEntity(ply)) or (not ply:IsActiveSpecial()) then
+   if (not IsValid(ply)) or (not ply:IsActiveSpecial()) then
       timer.Destroy(tmr)
       return
    end
@@ -350,7 +350,7 @@ end
 
 -- Equipment buying
 local function OrderEquipment(ply, cmd, args)
-   if not ValidEntity(ply) or #args != 1 then return end
+   if not IsValid(ply) or #args != 1 then return end
 
    if not (ply:IsActiveTraitor() or ply:IsActiveDetective() || ply.IsPin) then return end
 	if (ply.IsPin) then return end
@@ -435,7 +435,7 @@ concommand.Add("ttt_order_equipment", OrderEquipment)
 
 
 local function SetDisguise(ply, cmd, args)
-   if not ValidEntity(ply) or not ply:IsActiveTraitor() then return end
+   if not IsValid(ply) or not ply:IsActiveTraitor() then return end
 
    if ply:HasEquipmentItem(EQUIP_DISGUISE) then
       local state = #args == 1 and tobool(args[1])
@@ -447,7 +447,7 @@ end
 concommand.Add("ttt_set_disguise", SetDisguise)
 
 local function CheatCredits(ply)
-   if server_settings.Bool("sv_cheats", false) and ValidEntity(ply) then
+   if server_settings.Bool("sv_cheats", false) and IsValid(ply) then
       ply:AddCredits(10)
    end
 end
@@ -485,7 +485,7 @@ concommand.Add("ttt_transfer_credits", TransferCredits)
 
 -- Protect against non-TTT weapons that may break the HUD
 function GM:WeaponEquip(wep)
-   if ValidEntity(wep) then
+   if IsValid(wep) then
       -- only remove if they lack critical stuff
       if not wep.Kind then
          wep:Remove()

@@ -196,7 +196,7 @@ function plymeta:ShouldScore()
 end
 
 function plymeta:RecordKill(victim)
-   if not ValidEntity(victim) then return end
+   if not IsValid(victim) then return end
 
    if not self.kills then
       self.kills = {}

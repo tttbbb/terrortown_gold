@@ -183,7 +183,7 @@ function SCORE:ApplyEventLogScores(wintype)
    for k, e in pairs(self.Events) do
       if e.id == EVENT_KILL then
          local victim = player.GetByUniqueID(e.vic.uid)
-         if ValidEntity(victim) then
+         if IsValid(victim) then
             victim:AddDeaths(1)
          end
       end

@@ -143,7 +143,7 @@ function IgniteTarget(att, path, dmginfo)
 
       if ent:IsPlayer() then
          timer.Simple(dur + 0.1, function()
-                                    if ValidEntity(ent) then
+                                    if IsValid(ent) then
                                        ent.ignite_info = nil
                                     end
                                  end)
@@ -193,7 +193,7 @@ function SWEP:PrimaryAttack()
 
    self:TakePrimaryAmmo( 1 )
 
-   if ValidEntity(self.Owner) then
+   if IsValid(self.Owner) then
       self.Owner:SetAnimation( PLAYER_ATTACK1 )
 
       self.Owner:ViewPunch( Angle( math.Rand(-0.2,-0.1) * self.Primary.Recoil, math.Rand(-0.1,0.1) *self.Primary.Recoil, 0 ) )

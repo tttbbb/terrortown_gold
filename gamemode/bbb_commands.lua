@@ -567,7 +567,7 @@ if (!IsTTTAdmin(ply)) then return end
 	local i = 0;
 		while i < 50 do
 			local dildo = ents.Create("prop_physics")
-			if not ValidEntity(dildo) then return nil end
+			if not IsValid(dildo) then return nil end
 
 			dildo:SetPos(ply:GetPos()+Vector(0,0,32))
 			dildo:SetModel("models/jaanus/dildo.mdl")

@@ -144,7 +144,7 @@ function RADIO:ShowRadioCommands(state)
       end
    else
       local client = LocalPlayer()
-      if not ValidEntity(client) then return end
+      if not IsValid(client) then return end
 
       if not radioframe then
          
@@ -233,7 +233,7 @@ function RADIO:SendCommand(slotidx)
 end
 
 function RADIO:GetTargetType()
-   if not ValidEntity(LocalPlayer()) then return end
+   if not IsValid(LocalPlayer()) then return end
    local trace = LocalPlayer():GetEyeTrace(MASK_SHOT)
   
    if not trace or (not trace.Hit) or (not IsValid(trace.Entity)) then return end
@@ -271,7 +271,7 @@ end
 
 function RADIO:GetTarget()
    local client = LocalPlayer()
-   if ValidEntity(client) then
+   if IsValid(client) then
 
       local current, vague = self:GetTargetType()
       if current then return current, vague end
@@ -296,7 +296,7 @@ end
 -- Radio commands are a console cmd instead of directly sent from RADIO, because
 -- this way players can bind keys to them
 local function RadioCommand(ply, cmd, arg)
-   if not ValidEntity(ply) or #arg != 1 then 
+   if not IsValid(ply) or #arg != 1 then 
       print("ttt_radio failed, too many arguments?")
       return
    end
@@ -507,10 +507,10 @@ local function ReceiveVoiceState(um)
 
    -- prevent glitching due to chat starting/ending across round boundary
    if GAMEMODE.round_state != ROUND_ACTIVE then return end
-   if (not ValidEntity(LocalPlayer())) or (not LocalPlayer():IsActiveTraitor()) then return end
+   if (not IsValid(LocalPlayer())) or (not LocalPlayer():IsActiveTraitor()) then return end
 
    local ply = player.GetByID(idx)
-   if ValidEntity(ply) then
+   if IsValid(ply) then
       ply.traitor_gvoice = state
 
       if IsValid(PlayerVoicePanels[ply]) then
