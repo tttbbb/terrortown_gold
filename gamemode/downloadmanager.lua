@@ -14,7 +14,7 @@ function AddDir(dir) // recursively adds everything in a directory to be downloa
 end
 
 function AddFile(filein)
-	if (!file.Exists(filein, true)) then
+	if (!file.Exists(filein, "GAME")) then
 		Msg("==== FILE 404 "..filein.."\n")
 		return
 	end
