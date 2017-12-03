@@ -1,14 +1,14 @@
 if CLIENT then return end
 
 function AddDir(dir) // recursively adds everything in a directory to be downloaded by client
-        local list = file.FindDir("../"..dir.."/*")
-        for _, fdir in pairs(list) do
+        local files, dirs = file.Find(dir.."/*", "GAME")
+        for _, fdir in pairs(files) do
                 if fdir != ".svn" then // don't spam people with useless .svn folders
                         AddDir(dir.."/"..fdir)
                 end
         end
 
-        for k,v in pairs(file.Find("../"..dir.."/*")) do
+        for k,v in pairs(dirs) do
                 AddFile(dir.."/"..v)
         end
 end
@@ -19,14 +19,14 @@ function AddFile(filein)
 		return
 	end
 
-	if (string.find(filein,"bz2") || string.find(filein,".git")) then 
+	if (string.find(filein,"bz2") || string.find(filein,".git")) then
 		//Msg(" - SKIPPING "..file.."\n")
 		return
 	end
-	
+
 		resource.AddFile(filein)
 	Msg("====== Adding "..filein.."\n")
-end	
+end
 
 function AddModel(file)
 	Msg("====== Adding Model "..file.."\n")
@@ -37,14 +37,14 @@ function AddModel(file)
 	AddFile(file..".mdl")
 	AddFile(file..".vvd")
 	AddFile(file..".phy")
-end		
+end
 
 function AddMat(file)
 	Msg("====== Adding Material "..file.."\n")
 	AddFile(file..".vmt")
 	AddFile(file..".vtf")
-end	
-	
+end
+
 //AddDir("materials/models/gnin")
 //AddDir("models/gnin")
 
@@ -85,5 +85,3 @@ AddFile("models/feline.vvd")
 
 AddDir("materials/mixerman3d")
 AddDir("models/mixerman3d")
-
-
